@@ -22,9 +22,9 @@ export const donorsSeed: Donor[] = [
     followUpStatus: "pending",
   },
   {
-    id: "laura-martinez",
-    name: "Laura Martínez",
-    phone: "+5491163214987",
+    id: "facundo-taboada",
+    name: "Facundo Taboada",
+    phone: "+5491122710624",
     monthlyAmount: 8000,
     paymentStatus: "failed",
     lastPaymentDate: "2026-05-25",
