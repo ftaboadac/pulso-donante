@@ -21,20 +21,22 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Textarea } from "@/components/ui/textarea";
 import {
   buildDonorMessage,
-  buildWhatsAppLink,
+  buildWaLink,
   followUpStatusLabels,
   formatCurrency,
   getDonorRisk,
   paymentStatusLabels,
 } from "@/lib/donors";
+import { useDonors } from "@/hooks/use-donors";
 import type { Donor, FollowUpStatus } from "@/types/donor";
 
 const followUpOptions = Object.entries(followUpStatusLabels) as [FollowUpStatus, string][];
 
-export function DonorDetail({ donor }: { donor: Donor }) {
-  const [message, setMessage] = useState(() => buildDonorMessage(donor));
+export function DonorDetail({ donor: initialDonor }: { donor: Donor }) {
+  const { getDonor, updateDonorStatus } = useDonors();
+  const donor = getDonor(initialDonor.id) ?? initialDonor;
+  const [message, setMessage] = useState(() => buildDonorMessage(initialDonor));
   const [copied, setCopied] = useState(false);
-  const [followUpStatus, setFollowUpStatus] = useState<FollowUpStatus>(donor.followUpStatus);
 
   const risk = getDonorRisk(donor);
   const annualAmount = donor.monthlyAmount * 12;
@@ -139,7 +141,7 @@ export function DonorDetail({ donor }: { donor: Donor }) {
               />
               <div className="flex flex-col gap-3 sm:flex-row">
                 <Button asChild size="lg" className="flex-1 bg-emerald-600 hover:bg-emerald-700">
-                  <a href={buildWhatsAppLink(donor, message)} target="_blank" rel="noreferrer">
+                  <a href={buildWaLink(donor, message)} target="_blank" rel="noreferrer">
                     <MessageCircle />
                     Abrir en WhatsApp
                     <ExternalLink />
@@ -166,8 +168,8 @@ export function DonorDetail({ donor }: { donor: Donor }) {
               <label className="grid gap-2 text-sm font-medium">
                 Estado del vínculo
                 <select
-                  value={followUpStatus}
-                  onChange={(event) => setFollowUpStatus(event.target.value as FollowUpStatus)}
+                  value={donor.followUpStatus}
+                  onChange={(event) => updateDonorStatus(donor.id, event.target.value as FollowUpStatus)}
                   className="h-10 rounded-md border border-input bg-background px-3 text-sm outline-none focus:border-ring focus:ring-3 focus:ring-ring/20"
                 >
                   {followUpOptions.map(([value, label]) => (
@@ -177,8 +179,8 @@ export function DonorDetail({ donor }: { donor: Donor }) {
                   ))}
                 </select>
               </label>
-              {followUpStatus !== "recovered" ? (
-                <Button className="w-full" onClick={() => setFollowUpStatus("recovered")}>
+              {donor.followUpStatus !== "recovered" ? (
+                <Button className="w-full" onClick={() => updateDonorStatus(donor.id, "recovered")}>
                   <HeartHandshake />
                   Marcar como recuperado
                 </Button>
@@ -191,9 +193,7 @@ export function DonorDetail({ donor }: { donor: Donor }) {
                   </p>
                 </div>
               )}
-              <p className="text-xs text-muted-foreground">
-                TODO: persistir este estado y recalcular las métricas compartidas.
-              </p>
+              <p className="text-xs text-muted-foreground">El cambio queda guardado en este navegador.</p>
             </CardContent>
           </Card>
         </div>

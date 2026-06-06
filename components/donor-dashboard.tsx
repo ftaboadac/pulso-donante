@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { ArrowRight, CircleAlert, CircleDollarSign, HeartHandshake, TrendingUp, Users } from "lucide-react";
 
@@ -5,10 +7,10 @@ import { RiskBadge } from "@/components/donor-status";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useDonors } from "@/hooks/use-donors";
 import {
-  demoDonors,
   formatCurrency,
-  getDonorMetrics,
+  getDashboardMetrics,
   getDonorRisk,
   paymentStatusLabels,
   sortDonorsByPriority,
@@ -16,8 +18,9 @@ import {
 import { cn } from "@/lib/utils";
 
 export function DonorDashboard() {
-  const metrics = getDonorMetrics(demoDonors);
-  const visibleDonors = sortDonorsByPriority(demoDonors);
+  const { donors } = useDonors();
+  const metrics = getDashboardMetrics(donors);
+  const visibleDonors = sortDonorsByPriority(donors);
 
   return (
     <div className="space-y-6">
@@ -38,14 +41,14 @@ export function DonorDashboard() {
         <MetricCard
           icon={CircleDollarSign}
           label="En riesgo este mes"
-          value={formatCurrency(metrics.criticalMonthlyAmount)}
-          detail={`${metrics.criticalCount} pagos rechazados`}
+          value={formatCurrency(metrics.criticalMonthlyAtRisk)}
+          detail={`${metrics.criticalRiskCount} pagos rechazados`}
           tone="danger"
         />
         <MetricCard
           icon={TrendingUp}
           label="Riesgo anualizado"
-          value={formatCurrency(metrics.criticalAnnualAmount)}
+          value={formatCurrency(metrics.criticalAnnualAtRisk)}
           detail="Si no se recuperan"
         />
         <MetricCard
@@ -57,8 +60,8 @@ export function DonorDashboard() {
         <MetricCard
           icon={HeartHandshake}
           label="Ingreso preservado"
-          value={formatCurrency(metrics.recoveredMonthlyAmount)}
-          detail={`${formatCurrency(metrics.recoveredAnnualAmount)} anualizados`}
+          value={formatCurrency(metrics.monthlyRecovered)}
+          detail={`${formatCurrency(metrics.annualRecovered)} anualizados`}
           tone="success"
         />
       </section>

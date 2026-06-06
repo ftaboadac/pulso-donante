@@ -1,6 +1,5 @@
 import Link from "next/link";
 import {
-  ArrowRight,
   CheckCircle2,
   CircleDollarSign,
   HeartHandshake,
@@ -9,6 +8,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 
+import { DemoStartButton } from "@/components/demo-start-button";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -59,12 +59,7 @@ export default function HomePage() {
             aportes sin automatizar conversaciones sensibles.
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <Button asChild size="lg" className="h-12 px-6">
-              <Link href="/onboarding">
-                Iniciar demo guiada
-                <ArrowRight />
-              </Link>
-            </Button>
+            <DemoStartButton />
             <Button asChild size="lg" variant="outline" className="h-12 px-6">
               <Link href="/dashboard">Explorar con datos demo</Link>
             </Button>

@@ -84,7 +84,51 @@ Las reglas son determinísticas, visibles y auditables:
 - A igual severidad, un mayor aporte mensual sube la prioridad.
 - Un caso recuperado o cancelado deja de sumar al riesgo activo.
 
-La IA, si se incorpora, solo puede asistir con la redacción. No debe clasificar pagos, decidir el riesgo ni enviar mensajes.
+## Uso de IA en el MVP
+
+Pulso Donante usa IA de forma acotada y supervisada. No reemplaza a la persona de la ONG, no decide qué donantes están en riesgo y no envía mensajes automáticamente. Su función es reducir fricción operativa en dos momentos específicos.
+
+### Mapeo asistido de la planilla
+
+Cada ONG organiza su Excel de forma distinta. La app puede analizar las columnas detectadas y algunas filas de ejemplo para sugerir un mapeo inicial hacia el modelo interno. Por ejemplo:
+
+- `Donante` → nombre.
+- `Celular / WhatsApp` → teléfono.
+- `Aporte actual` → monto mensual.
+- `Estado último cobro` → estado de pago.
+
+También puede sugerir cómo interpretar valores frecuentes como `OK`, `Rechazado`, `Sin fondos` o `Pendiente`.
+
+La sugerencia nunca se aplica de forma automática. La persona de la ONG debe verla, confirmarla o corregirla antes de que la app procese la base. Si la IA no está disponible, el onboarding continúa con heurísticas simples y un mapeo preseleccionado.
+
+### Redacción asistida de mensajes
+
+A partir del nombre, monto mensual, causa apoyada, motivo de riesgo e impacto concreto, la IA puede generar un borrador de mensaje con tono cuidado. La persona puede editarlo antes de copiarlo o abrir WhatsApp mediante `wa.me`.
+
+Si la IA falla, la aplicación usa templates predefinidos y el flujo principal continúa funcionando.
+
+### Límites
+
+La IA:
+
+- No clasifica pagos como definitivos.
+- No calcula riesgo financiero ni decide prioridades.
+- No envía mensajes.
+- No solicita tarjeta, CBU ni información bancaria.
+- No aplica mapeos sin confirmación humana.
+
+Las reglas de riesgo siguen siendo determinísticas, transparentes y auditables.
+
+```text
+Planilla -> IA sugiere mapeo -> persona confirma
+         -> reglas determinísticas detectan riesgo
+         -> IA sugiere mensaje -> persona revisa y envía por WhatsApp
+         -> persona registra resultado -> dashboard recalcula métricas
+```
+
+Para el MVP, la API de IA está administrada por la plataforma. La ONG no necesita configurar una API key, crear una cuenta de OpenAI o Anthropic ni realizar integraciones técnicas.
+
+La automatización completa queda como una evolución futura únicamente para mensajes de bajo riesgo y con aprobación previa de la organización.
 
 ## Stack
 
@@ -143,6 +187,8 @@ types/
 - CRM completo, roles, permisos o soporte multi-ONG.
 - Importador universal de cualquier Excel.
 - Chatbot autónomo o IA tomando decisiones.
+- Aplicación automática de mapeos sugeridos por IA.
+- Envío automático de mensajes generados por IA.
 - Aplicación móvil nativa.
 
 ## Definition of Done

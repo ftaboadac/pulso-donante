@@ -24,3 +24,6 @@ pnpm-debug.log*
 # misc
 .DS_Store
 *.pem
+
+# local implementation notes
+/FACUNDO_IMPLEMENTATION_PLAN.md

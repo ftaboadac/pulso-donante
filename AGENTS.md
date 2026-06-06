@@ -91,6 +91,37 @@ Implementar reglas directas y comprobables:
 
 No usar un LLM para clasificar riesgo, pagos o prioridades.
 
+## Uso de IA en el MVP
+
+La IA es opcional, acotada y supervisada. Solo puede reducir fricción en dos puntos:
+
+1. Sugerir el mapeo inicial de columnas y la normalización de estados durante el onboarding.
+2. Generar un borrador editable de mensaje a partir de nombre, monto, causa, motivo de riesgo e impacto.
+
+Flujo permitido:
+
+```text
+Planilla -> IA sugiere mapeo -> persona confirma
+         -> reglas determinísticas detectan riesgo
+         -> IA sugiere mensaje -> persona revisa y envía por WhatsApp
+         -> persona registra resultado -> dashboard recalcula métricas
+```
+
+Reglas obligatorias:
+
+- Nunca aplicar un mapeo sugerido sin confirmación humana.
+- Mostrar la sugerencia de IA como editable y corregible.
+- Mantener heurísticas simples de mapeo como fallback.
+- Mantener templates de mensajes como fallback.
+- Si la IA falla, el loop prioritario debe seguir funcionando.
+- No pedir a la ONG una API key ni una cuenta de OpenAI o Anthropic.
+- Para el MVP, asumir que la API de IA es administrada por la plataforma.
+- No usar IA para clasificar pagos, calcular riesgo financiero o decidir prioridades.
+- No permitir que la IA envíe mensajes o inicie conversaciones.
+- No solicitar tarjeta, CBU ni información bancaria mediante prompts o mensajes.
+
+La automatización futura solo puede considerarse para mensajes de bajo riesgo y con aprobación previa de la organización. No forma parte del MVP.
+
 ## Arquitectura
 
 - Mantener todo dentro de la aplicación Next.js.
@@ -139,6 +170,8 @@ No usar un LLM para clasificar riesgo, pagos o prioridades.
 - WhatsApp Business API, Twilio y bots.
 - CRM completo, roles, permisos y multi-ONG.
 - Chatbot autónomo.
+- Aplicación automática de mapeos sugeridos por IA.
+- Envío automático de mensajes generados por IA.
 - Importador universal de Excel.
 - Aplicación móvil nativa.
 - Reportes avanzados o automatizaciones de alto riesgo.
