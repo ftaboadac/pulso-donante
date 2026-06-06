@@ -31,7 +31,7 @@ const columns = [
   "Estado último cobro",
   "Último pago",
   "Último contacto",
-  "Programa",
+  "Área de impacto",
 ];
 
 const sampleRows = donorsSeed.slice(0, 5).map((donor, index) => ({
@@ -41,7 +41,7 @@ const sampleRows = donorsSeed.slice(0, 5).map((donor, index) => ({
   "Estado último cobro": previewStatuses[index],
   "Último pago": donor.lastPaymentDate,
   "Último contacto": donor.lastImpactContactDate,
-  Programa: donor.cause,
+  "Área de impacto": donor.cause,
 }));
 
 const previewRows = donorsSeed.slice(0, 5).map((donor, index) => ({

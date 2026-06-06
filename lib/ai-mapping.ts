@@ -13,7 +13,7 @@ const columnAliases: Record<OnboardingField, string[]> = {
   paymentStatus: ["estado ultimo cobro", "estado último cobro", "estado de pago", "estado"],
   lastPaymentDate: ["ultimo pago", "último pago", "fecha ultimo pago", "fecha último pago"],
   lastImpactContactDate: ["ultimo contacto", "último contacto", "contacto de impacto"],
-  cause: ["programa", "causa", "proyecto"],
+  cause: ["area de impacto", "linea de trabajo", "programa", "causa", "proyecto"],
 };
 
 const normalizationAliases: Array<[string[], PaymentStatus]> = [
@@ -71,4 +71,3 @@ function normalizeLabel(value: string) {
     .trim()
     .toLowerCase();
 }
-
