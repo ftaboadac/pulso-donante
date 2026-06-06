@@ -6,6 +6,15 @@ export type DonorRisk = {
   score: number;
 };
 
+export type DonorRiskFlags = {
+  failedPayment: boolean;
+  pendingPayment: boolean;
+  passiveChurn: boolean;
+  staleAmount: boolean;
+  staleImpact: boolean;
+  invalidPhone: boolean;
+};
+
 const TODAY = new Date("2026-06-06T12:00:00");
 const INACTIVE_STATUSES = new Set(["recovered", "cancelled"]);
 
@@ -13,29 +22,43 @@ export function daysSince(date: string) {
   return Math.floor((TODAY.getTime() - new Date(`${date}T12:00:00`).getTime()) / 86_400_000);
 }
 
+export function getRiskFlags(donor: Donor): DonorRiskFlags {
+  const paymentDays = daysSince(donor.lastPaymentDate);
+
+  return {
+    failedPayment: donor.paymentStatus === "failed",
+    pendingPayment: donor.paymentStatus === "pending",
+    passiveChurn: donor.paymentStatus !== "failed" && donor.paymentStatus !== "pending" && paymentDays > 45,
+    staleAmount: daysSince(donor.lastAmountUpdateDate) > 120,
+    staleImpact: daysSince(donor.lastImpactContactDate) > 60,
+    invalidPhone: !/^\+\d{10,15}$/.test(donor.phone),
+  };
+}
+
 export function getRiskReasons(donor: Donor) {
   const reasons: string[] = [];
   const paymentDays = daysSince(donor.lastPaymentDate);
   const amountUpdateDays = daysSince(donor.lastAmountUpdateDate);
   const impactContactDays = daysSince(donor.lastImpactContactDate);
+  const flags = getRiskFlags(donor);
 
-  if (donor.paymentStatus === "failed") {
+  if (flags.failedPayment) {
     reasons.push(`Pago rechazado hace ${paymentDays} días`);
-  } else if (donor.paymentStatus === "pending") {
+  } else if (flags.pendingPayment) {
     reasons.push("Pago pendiente");
-  } else if (paymentDays > 45) {
+  } else if (flags.passiveChurn) {
     reasons.push(`Último pago hace ${paymentDays} días: posible baja pasiva`);
   }
 
-  if (amountUpdateDays > 120) {
+  if (flags.staleAmount) {
     reasons.push(`Monto sin actualizar hace ${amountUpdateDays} días`);
   }
 
-  if (impactContactDays > 60) {
+  if (flags.staleImpact) {
     reasons.push(`Sin rendición de impacto hace ${impactContactDays} días`);
   }
 
-  if (!/^\+\d{10,15}$/.test(donor.phone)) {
+  if (flags.invalidPhone) {
     reasons.push("Teléfono inválido: no contactable");
   }
 
