@@ -99,13 +99,15 @@ Cada ONG organiza su Excel de forma distinta. La app puede analizar las columnas
 
 También puede sugerir cómo interpretar valores frecuentes como `OK`, `Rechazado`, `Sin fondos` o `Pendiente`.
 
-La sugerencia nunca se aplica de forma automática. La persona de la ONG debe verla, confirmarla o corregirla antes de que la app procese la base. Si la IA no está disponible, el onboarding continúa con heurísticas simples y un mapeo preseleccionado.
+Al abrir el onboarding, Claude Sonnet 4.6 analiza automáticamente las siete columnas y hasta cinco filas de ejemplo. La sugerencia nunca se aplica de forma automática: la persona debe verla, confirmarla o corregirla antes de que la app procese la base. La selección confirmada queda guardada durante la sesión.
+
+Si Claude no está disponible, el onboarding continúa con heurísticas simples y un mapeo preseleccionado. La pantalla identifica claramente si la propuesta fue generada por Claude o por el fallback local.
 
 ### Redacción asistida de mensajes
 
-A partir del nombre, monto mensual, causa apoyada, motivo de riesgo e impacto concreto, la IA puede generar un borrador de mensaje con tono cuidado. La persona puede editarlo antes de copiarlo o abrir WhatsApp mediante `wa.me`.
+A partir del nombre, monto mensual, causa apoyada, motivo de riesgo e impacto concreto, “Generar con Claude” prepara un borrador con tono cuidado. La persona puede editarlo, volver al template original y decidir si lo copia o abre WhatsApp mediante `wa.me`.
 
-Si la IA falla, la aplicación usa templates predefinidos y el flujo principal continúa funcionando.
+El template seguro siempre aparece primero. Si la IA falla o devuelve contenido inválido, el texto actual no se reemplaza y el flujo principal continúa funcionando.
 
 ### Límites
 
@@ -136,11 +138,12 @@ La automatización completa queda como una evolución futura únicamente para me
 - React y TypeScript
 - Tailwind CSS
 - Componentes estilo shadcn/ui
+- Claude Sonnet 4.6 mediante el SDK oficial de Anthropic
 - `localStorage` para persistencia de la demo
 - Enlaces `wa.me` para abrir WhatsApp
 - Vercel como destino de despliegue
 
-El MVP no necesita base de datos, autenticación ni variables de entorno para funcionar.
+El loop principal no necesita base de datos, autenticación ni variables de entorno. Las funciones de Claude requieren `ANTHROPIC_API_KEY`, pero tienen fallback local y nunca bloquean la demo.
 
 ## Desarrollo local
 
@@ -150,6 +153,15 @@ npm run dev
 ```
 
 Abrir [http://localhost:3000](http://localhost:3000).
+
+Para habilitar Claude, crear `.env.local` a partir de `.env.example`:
+
+```bash
+ANTHROPIC_API_KEY=...
+ANTHROPIC_MODEL=claude-sonnet-4-6
+```
+
+La clave es exclusiva del servidor. Nunca debe usar el prefijo `NEXT_PUBLIC_`, incluirse en el repositorio ni pedirse a una ONG.
 
 Antes de entregar:
 
@@ -162,6 +174,7 @@ npm run build
 
 ```text
 app/
+  api/ai/                    Sugerencias de mapeo y mensajes
   page.tsx                    Home
   (app)/onboarding/page.tsx  Demo de planilla
   (app)/dashboard/page.tsx   Métricas y tabla
@@ -173,8 +186,10 @@ components/
 hooks/
   use-donors.ts              Estado y persistencia local
 lib/
+  anthropic.ts               Cliente server-only y modelo
   donors.ts                  Seed, reglas, métricas y mensajes
 types/
+  ai.ts                      Contratos validados de IA
   donor.ts                   Contrato de datos
 ```
 
@@ -195,9 +210,11 @@ types/
 
 - El enlace abre sin login y permite recorrer la demo.
 - El onboarding muestra mapeo y normalización.
+- El onboarding permite corregir y confirmar la sugerencia de Claude o del fallback.
 - El dashboard separa pagos rechazados de otros seguimientos.
 - Existe al menos un pago rechazado y un monto desactualizado.
 - El mensaje incluye nombre, motivo, impacto y una acción concreta.
+- Claude solo reemplaza el mensaje cuando devuelve un borrador válido y seguro.
 - El botón de WhatsApp abre `wa.me` con texto precargado.
 - Copiar mensaje funciona como alternativa.
 - Marcar un caso como recuperado actualiza las métricas.
