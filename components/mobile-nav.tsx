@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Bot, ClipboardList, Home, Menu, Settings } from "lucide-react";
+import { FileSpreadsheet, HeartPulse, Home, LayoutDashboard, Menu } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -14,17 +14,17 @@ import {
 } from "@/components/ui/sheet";
 
 const navItems = [
-  { href: "/dashboard", label: "Dashboard", icon: Home },
-  { href: "/dashboard#tasks", label: "Tasks", icon: ClipboardList },
-  { href: "/dashboard#ai", label: "AI summary", icon: Bot },
-  { href: "/login", label: "Auth", icon: Settings },
+  { href: "/", label: "Inicio", icon: Home },
+  { href: "/onboarding", label: "Cargar planilla", icon: FileSpreadsheet },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
 ] as const;
 
 export function MobileNav() {
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b bg-background/95 px-4 backdrop-blur lg:hidden">
-      <Link href="/dashboard" className="font-semibold">
-        Hackathon Starter
+      <Link href="/" className="flex items-center gap-2 font-semibold text-primary">
+        <HeartPulse className="size-5" />
+        Pulso Donante
       </Link>
       <Sheet>
         <SheetTrigger asChild>
@@ -34,8 +34,8 @@ export function MobileNav() {
         </SheetTrigger>
         <SheetContent side="left">
           <SheetHeader>
-            <SheetTitle>Navigation</SheetTitle>
-            <SheetDescription className="sr-only">Move between the starter dashboard, tasks, AI demo, and auth screen.</SheetDescription>
+            <SheetTitle>Pulso Donante</SheetTitle>
+            <SheetDescription className="sr-only">Navegá entre el inicio, la carga de planilla y el dashboard.</SheetDescription>
           </SheetHeader>
           <nav className="mt-6 grid gap-2">
             {navItems.map((item) => (

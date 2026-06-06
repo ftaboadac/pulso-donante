@@ -14,12 +14,12 @@ export default function DashboardError({
   return (
     <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 text-center">
       <div>
-        <h2 className="text-2xl font-semibold">The dashboard hit an error.</h2>
+        <h2 className="text-2xl font-semibold">No pudimos cargar el dashboard.</h2>
         <p className="mt-2 max-w-md text-sm text-muted-foreground">{error.message}</p>
       </div>
       <Button onClick={reset}>
         <RotateCcw className="size-4" />
-        Try again
+        Intentar de nuevo
       </Button>
     </div>
   );

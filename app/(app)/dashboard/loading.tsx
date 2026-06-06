@@ -8,7 +8,8 @@ export default function DashboardLoading() {
         <Skeleton className="h-10 w-72" />
         <Skeleton className="h-5 w-full max-w-xl" />
       </div>
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <Skeleton className="h-24" />
         <Skeleton className="h-24" />
         <Skeleton className="h-24" />
         <Skeleton className="h-24" />

@@ -4,8 +4,8 @@ import { GeistSans } from "geist/font/sans";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Hackathon Starter",
-  description: "A fast Next.js, Supabase, OpenAI, and shadcn/ui starter for one-day hackathons.",
+  title: "Pulso Donante",
+  description: "Convertí tu planilla de donantes en acciones concretas para cuidar cada vínculo.",
 };
 
 export default function RootLayout({
@@ -14,7 +14,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`}>
+    <html lang="es" className={`${GeistSans.variable} ${GeistMono.variable}`}>
       <body className="antialiased">{children}</body>
     </html>
   );

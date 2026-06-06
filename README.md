@@ -1,122 +1,163 @@
-# Hackathon Starter
+# Pulso Donante
 
-A production-ready Next.js starter optimized for a 3-person team shipping a one-day hackathon demo. It is intentionally monolithic: frontend, API routes, Server Actions, Supabase, and OpenAI all live inside one deployable Next.js app.
+Pulso Donante convierte una planilla de donantes en una cola priorizada de acciones por WhatsApp. Ayuda a una ONG a detectar pagos rechazados y otros riesgos a tiempo, preparar mensajes cuidados y medir cuánto ingreso logró preservar.
+
+> Pulso Donante no reemplaza el vínculo humano. Automatiza la detección, priorización y preparación; una persona revisa, decide y envía.
+
+## Problema
+
+Muchas ONGs gestionan sus donantes entre Excel, correo y WhatsApp. Los pagos fallidos, montos desactualizados y seguimientos pendientes se detectan tarde, por lo que parte de las bajas ocurre de forma pasiva y evitable.
+
+El MVP responde dos preguntas:
+
+1. ¿Cuánto ingreso está por perder la organización?
+2. ¿Qué casos debería atender hoy?
+
+## Flujo del MVP
+
+1. La persona inicia una demo sin login.
+2. Revisa una planilla precargada.
+3. Confirma el mapeo de columnas y la normalización de estados.
+4. Ve métricas y una cola de donantes ordenada por prioridad.
+5. Abre el detalle de un donante y entiende el motivo del riesgo.
+6. Revisa y edita un mensaje sugerido.
+7. Abre WhatsApp mediante un enlace `wa.me` o copia el mensaje.
+8. Registra el resultado del contacto.
+9. El dashboard recalcula el ingreso recuperado.
+
+## Rutas
+
+| Ruta | Propósito |
+| --- | --- |
+| `/` | Home y entrada a la demo |
+| `/onboarding` | Vista previa, mapeo y normalización de la planilla |
+| `/dashboard` | Métricas y cola priorizada de donantes |
+| `/donor/[id]` | Diagnóstico, mensaje, WhatsApp y seguimiento |
+
+## Datos de la demo
+
+La base incluye 10 donantes:
+
+- 4 pagos rechazados prioritarios.
+- `$34.500` mensuales en riesgo crítico.
+- `$414.000` anualizados en riesgo crítico.
+- 3 casos adicionales de seguimiento.
+- `$0` recuperados al iniciar.
+
+El caso principal es María Gómez, con un aporte de `$5.000` mensuales. Al marcarla como recuperada, el dashboard debe mostrar `$5.000` mensuales y `$60.000` anualizados preservados.
+
+## Contrato de datos
+
+```ts
+type Donor = {
+  id: string;
+  name: string;
+  phone: string;
+  monthlyAmount: number;
+  paymentStatus: "paid" | "failed" | "pending" | "unknown";
+  lastPaymentDate: string;
+  lastAmountUpdateDate: string;
+  lastImpactContactDate: string;
+  cause: string;
+  impactText: string;
+  followUpStatus:
+    | "pending"
+    | "contacted"
+    | "recovered"
+    | "wants_increase"
+    | "needs_follow_up"
+    | "cancelled";
+};
+```
+
+La definición fuente está en `types/donor.ts`.
+
+## Reglas de riesgo
+
+Las reglas son determinísticas, visibles y auditables:
+
+- Pago rechazado: riesgo crítico.
+- Último pago hace más de 45 días: posible baja pasiva.
+- Monto sin actualizar hace más de 120 días: seguimiento.
+- Último contacto de impacto hace más de 60 días: seguimiento.
+- Teléfono faltante o inválido: no contactable por WhatsApp.
+- A igual severidad, un mayor aporte mensual sube la prioridad.
+- Un caso recuperado o cancelado deja de sumar al riesgo activo.
+
+La IA, si se incorpora, solo puede asistir con la redacción. No debe clasificar pagos, decidir el riesgo ni enviar mensajes.
 
 ## Stack
 
 - Next.js App Router
-- TypeScript
+- React y TypeScript
 - Tailwind CSS
-- shadcn/ui-style components
-- Supabase Database and optional Auth
-- OpenAI SDK with the Responses API
-- Vercel deployment
+- Componentes estilo shadcn/ui
+- `localStorage` para persistencia de la demo
+- Enlaces `wa.me` para abrir WhatsApp
+- Vercel como destino de despliegue
 
-## Quick Start
+El MVP no necesita base de datos, autenticación ni variables de entorno para funcionar.
+
+## Desarrollo local
 
 ```bash
 npm install
-cp .env.example .env.local
 npm run dev
 ```
 
-Open http://localhost:3000.
+Abrir [http://localhost:3000](http://localhost:3000).
 
-The app runs with demo data before Supabase is configured, so teammates can start editing UI immediately.
-
-## Environment Variables
+Antes de entregar:
 
 ```bash
-NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-supabase-publishable-key
-OPENAI_API_KEY=sk-proj-your-openai-api-key
-OPENAI_MODEL=gpt-5.4-mini
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-```
-
-## Project Structure
-
-```text
-app/
-  (app)/dashboard/        Main dashboard, loading, and error states
-  (auth)/login/           Optional Supabase Auth screen
-  api/ai/generate-summary OpenAI example endpoint
-components/
-  ui/                     shadcn-style primitives
-hooks/
-lib/
-  supabase/               Browser, server, and middleware clients
-types/
-supabase/schema.sql       Copy-paste database schema
-```
-
-## Supabase Setup
-
-1. Create a Supabase project.
-2. Copy your project URL and publishable key into `.env.local`.
-3. Open the SQL Editor and run `supabase/schema.sql`.
-4. Restart `npm run dev`.
-
-The default policies allow any authenticated user to work with shared hackathon tasks. For a no-login internal demo, you can temporarily change each policy role from `authenticated` to `anon, authenticated`.
-
-Auth is optional. To remove it, delete:
-
-- `app/(auth)/`
-- `app/auth/callback/`
-- `proxy.ts`
-- the sign-out form in `components/app-sidebar.tsx`
-
-## OpenAI Setup
-
-Add `OPENAI_API_KEY` to `.env.local`.
-
-Example endpoint:
-
-```http
-POST /api/ai/generate-summary
-Content-Type: application/json
-
-{
-  "text": "Paste meeting notes, raw research, form responses, or a chat transcript."
-}
-```
-
-Response:
-
-```json
-{
-  "summary": "..."
-}
-```
-
-## Local Development
-
-```bash
-npm run dev
 npm run lint
 npm run build
 ```
 
-Use the existing Task entity as the fastest CRUD path:
+## Estructura relevante
 
-- Update `types/database.ts`
-- Update `supabase/schema.sql`
-- Update `lib/tasks.ts`
-- Update `components/task-form.tsx` and `components/task-table.tsx`
+```text
+app/
+  page.tsx                    Home
+  (app)/onboarding/page.tsx  Demo de planilla
+  (app)/dashboard/page.tsx   Métricas y tabla
+  (app)/donor/[id]/page.tsx  Detalle del donante
+components/
+  donor-dashboard.tsx
+  donor-detail.tsx
+  onboarding-demo.tsx
+hooks/
+  use-donors.ts              Estado y persistencia local
+lib/
+  donors.ts                  Seed, reglas, métricas y mensajes
+types/
+  donor.ts                   Contrato de datos
+```
 
-## Vercel Deployment
+## Fuera de alcance
 
-1. Push this repository to GitHub.
-2. Import it in Vercel.
-3. Add the environment variables from `.env.example`.
-4. Deploy.
+- Envío automático de mensajes.
+- WhatsApp Business API, Twilio o bots.
+- Cobros reales o actualización de tarjeta/CBU.
+- Almacenamiento de datos financieros sensibles.
+- CRM completo, roles, permisos o soporte multi-ONG.
+- Importador universal de cualquier Excel.
+- Chatbot autónomo o IA tomando decisiones.
+- Aplicación móvil nativa.
 
-No Docker, separate backend, Redis, queues, or extra services are required.
+## Definition of Done
 
-## AI-Agent Friendly Notes
+- El enlace abre sin login y permite recorrer la demo.
+- El onboarding muestra mapeo y normalización.
+- El dashboard separa pagos rechazados de otros seguimientos.
+- Existe al menos un pago rechazado y un monto desactualizado.
+- El mensaje incluye nombre, motivo, impacto y una acción concreta.
+- El botón de WhatsApp abre `wa.me` con texto precargado.
+- Copiar mensaje funciona como alternativa.
+- Marcar un caso como recuperado actualiza las métricas.
+- La experiencia funciona en celular y navegador incógnito.
+- No se solicitan ni almacenan datos financieros sensibles.
 
-- Read `AGENTS.md` before making changes.
-- Keep SDK initialization lazy.
-- Keep new features close to the route or component that uses them.
-- Prefer obvious names over generalized abstractions.
-- Add only the setup required for the current demo.
+## Principio de alcance
+
+Si una funcionalidad no ayuda a recuperar un donante durante la demo, no bloquea el MVP. Si el flujo no se entiende al abrir el enlace en menos de 60 segundos, debe simplificarse.
