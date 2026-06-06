@@ -1,172 +1,173 @@
-"use client";
-
-import { useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, Check, FileSpreadsheet, Sparkles } from "lucide-react";
+import { ArrowRight, Check } from "lucide-react";
 
+import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { cn } from "@/lib/utils";
+import { donorsSeed, formatCurrency } from "@/lib/donors";
 
-const previewRows = [
-  ["María Gómez", "+54 9 11 5555 4444", "$5.000", "Rechazado"],
-  ["Laura Martínez", "+54 9 11 6321 4987", "$8.000", "Sin fondos"],
-  ["Carlos Rodríguez", "+54 9 11 6980 1142", "$3.500", "OK"],
-  ["Camila Ruiz", "+54 9 11 6002 7134", "$6.000", "Pendiente"],
-];
+const previewStatuses = ["Rechazado", "Sin fondos", "Rechazado", "Rechazado", "OK"];
+
+const previewRows = donorsSeed.slice(0, 5).map((donor, index) => ({
+  donor: donor.name,
+  phone: formatPhone(donor.phone),
+  amount: formatCurrency(donor.monthlyAmount),
+  status: previewStatuses[index],
+  lastPayment: formatShortDate(donor.lastPaymentDate),
+  lastContact: formatShortDate(donor.lastImpactContactDate),
+  program: donor.cause,
+}));
 
 const mappings = [
-  ["Donante", "Nombre"],
-  ["Celular / WhatsApp", "Teléfono"],
-  ["Aporte actual", "Monto mensual"],
-  ["Estado último cobro", "Estado de pago"],
-  ["Programa", "Causa"],
+  ["Nombre", "Donante"],
+  ["WhatsApp", "Celular"],
+  ["Monto mensual", "Aporte actual"],
+  ["Estado de pago", "Estado último cobro"],
+  ["Último pago", "Último pago"],
+  ["Último contacto", "Último contacto"],
+  ["Causa", "Programa"],
 ];
 
 const normalizations = [
-  ["OK / Pagado / Cobrado", "Pago correcto"],
-  ["Rechazado / Fallido / Sin fondos", "Pago fallido"],
-  ["Pendiente / A revisar", "Pendiente"],
+  ["OK", "Pago correcto"],
+  ["Rechazado", "Pago fallido"],
+  ["Sin fondos", "Pago fallido"],
+  ["Pendiente", "Pendiente"],
   ["Vacío", "Desconocido"],
 ];
 
-export function OnboardingDemo() {
-  const [step, setStep] = useState(1);
+const columns = [
+  "Donante",
+  "Celular",
+  "Aporte actual",
+  "Estado último cobro",
+  "Último pago",
+  "Último contacto",
+  "Programa",
+];
 
+export function OnboardingDemo() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <Logo />
+        <Button asChild variant="ghost" size="sm">
+          <Link href="/">Volver</Link>
+        </Button>
+      </div>
+
       <div>
-        <p className="text-sm font-medium text-primary">Demo guiada · Paso {step} de 3</p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight">Tu planilla, sin obligarte a cambiarla</h1>
-        <p className="mt-2 max-w-2xl text-muted-foreground">
-          Pulso Donante interpreta columnas y valores comunes. Vos confirmás antes de continuar.
+        <span className="text-sm font-medium text-primary">Preparación de datos</span>
+        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-foreground">
+          Revisá cómo interpretamos tu planilla
+        </h1>
+        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+          Analizamos las columnas y sugerimos un mapeo inicial. Todo está preseleccionado, pero vos confirmás antes de
+          detectar los casos en riesgo.
         </p>
       </div>
 
-      <div className="grid grid-cols-3 gap-2" aria-label="Progreso del onboarding">
-        {["Vista previa", "Mapeo", "Normalización"].map((label, index) => {
-          const current = index + 1;
-          return (
-            <div key={label}>
-              <div className={cn("h-1.5 rounded-full", current <= step ? "bg-primary" : "bg-muted")} />
-              <p className={cn("mt-2 text-xs font-medium", current <= step ? "text-primary" : "text-muted-foreground")}>
-                {label}
-              </p>
-            </div>
-          );
-        })}
+      <section className="overflow-hidden rounded-xl border border-border bg-card">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-5 py-3">
+          <h2 className="text-sm font-semibold text-foreground">Vista previa de la planilla</h2>
+          <span className="text-xs text-muted-foreground">donantes.xlsx · 10 filas</span>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[980px] border-collapse text-sm">
+            <thead>
+              <tr className="bg-secondary">
+                {columns.map((column) => (
+                  <th
+                    key={column}
+                    className="whitespace-nowrap px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground"
+                  >
+                    {column}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {previewRows.map((row) => (
+                <tr key={row.donor} className="border-t border-border hover:bg-secondary/50">
+                  <td className="whitespace-nowrap px-4 py-2.5 font-medium text-foreground">{row.donor}</td>
+                  <td className="whitespace-nowrap px-4 py-2.5 text-muted-foreground">{row.phone}</td>
+                  <td className="whitespace-nowrap px-4 py-2.5 text-foreground">{row.amount}</td>
+                  <td className="whitespace-nowrap px-4 py-2.5 text-muted-foreground">{row.status}</td>
+                  <td className="whitespace-nowrap px-4 py-2.5 text-muted-foreground">{row.lastPayment}</td>
+                  <td className="whitespace-nowrap px-4 py-2.5 text-muted-foreground">{row.lastContact}</td>
+                  <td className="whitespace-nowrap px-4 py-2.5 text-muted-foreground">{row.program}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <MappingCard
+          title="Mapeo sugerido de columnas"
+          description="Campo de Pulso Donante → columna detectada"
+          items={mappings}
+        />
+        <MappingCard
+          title="Normalización sugerida"
+          description="Valor encontrado → estado interpretado"
+          items={normalizations}
+        />
       </div>
 
-      {step === 1 && (
-        <Card>
-          <CardHeader className="sm:flex sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <FileSpreadsheet className="size-5 text-primary" />
-                donantes_junio.csv
-              </CardTitle>
-              <CardDescription className="mt-2">10 filas detectadas · La planilla de ejemplo ya está cargada.</CardDescription>
-            </div>
-            <span className="mt-3 w-fit rounded-full bg-accent px-3 py-1 text-xs font-medium text-accent-foreground sm:mt-0">
-              Lista para revisar
-            </span>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  {["Donante", "Celular / WhatsApp", "Aporte actual", "Estado último cobro"].map((header) => (
-                    <TableHead key={header}>{header}</TableHead>
-                  ))}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {previewRows.map((row) => (
-                  <TableRow key={row[0]}>
-                    {row.map((cell) => (
-                      <TableCell key={cell}>{cell}</TableCell>
-                    ))}
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      )}
-
-      {step === 2 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Confirmá qué significa cada columna</CardTitle>
-            <CardDescription>Preseleccionamos el mapeo más probable. En una importación real podrías corregirlo.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {mappings.map(([source, target]) => (
-              <div key={source} className="grid items-center gap-2 rounded-xl border p-4 sm:grid-cols-[1fr_auto_1fr]">
-                <div>
-                  <p className="text-xs text-muted-foreground">En tu planilla</p>
-                  <p className="font-medium">{source}</p>
-                </div>
-                <ArrowRight className="hidden size-4 text-muted-foreground sm:block" />
-                <div className="rounded-lg bg-secondary px-3 py-2">
-                  <p className="text-xs text-muted-foreground">En Pulso Donante</p>
-                  <p className="font-medium text-secondary-foreground">{target}</p>
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
-
-      {step === 3 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Sparkles className="size-5 text-primary" />
-              Normalización sugerida
-            </CardTitle>
-            <CardDescription>Agrupamos distintas formas de escribir el mismo estado. Las reglas son visibles y editables.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {normalizations.map(([source, target]) => (
-              <div key={source} className="flex flex-col justify-between gap-3 rounded-xl border p-4 sm:flex-row sm:items-center">
-                <div>
-                  <p className="text-xs text-muted-foreground">Valores encontrados</p>
-                  <p className="font-medium">{source}</p>
-                </div>
-                <div className="flex items-center gap-2 rounded-lg bg-accent px-3 py-2 text-sm font-medium text-accent-foreground">
-                  <Check className="size-4" />
-                  {target}
-                </div>
-              </div>
-            ))}
-            <div className="mt-5 rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm text-primary">
-              Se cargarán 10 donantes: 4 con pagos rechazados prioritarios y 3 casos adicionales de seguimiento.
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      <div className="flex items-center justify-between">
-        <Button variant="ghost" disabled={step === 1} onClick={() => setStep((current) => current - 1)}>
-          <ArrowLeft />
-          Atrás
-        </Button>
-        {step < 3 ? (
-          <Button onClick={() => setStep((current) => current + 1)}>
-            Confirmar y continuar
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-border bg-card p-5">
+        <p className="text-sm text-muted-foreground">
+          Todo listo. Se analizarán 10 donantes con reglas transparentes y auditables.
+        </p>
+        <Button asChild size="lg">
+          <Link href="/dashboard">
+            Detectar donantes en riesgo
             <ArrowRight />
-          </Button>
-        ) : (
-          <Button asChild>
-            <Link href="/dashboard">
-              Ver casos priorizados
-              <ArrowRight />
-            </Link>
-          </Button>
-        )}
+          </Link>
+        </Button>
       </div>
     </div>
+  );
+}
+
+function MappingCard({
+  title,
+  description,
+  items,
+}: {
+  title: string;
+  description: string;
+  items: string[][];
+}) {
+  return (
+    <section className="rounded-xl border border-border bg-card p-5">
+      <h2 className="text-sm font-semibold text-foreground">{title}</h2>
+      <p className="mt-1 text-xs text-muted-foreground">{description}</p>
+      <ul className="mt-4 flex flex-col gap-2">
+        {items.map(([source, target]) => (
+          <li
+            key={`${source}-${target}`}
+            className="flex items-center gap-3 rounded-lg border border-border bg-secondary/40 px-3 py-2"
+          >
+            <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-accent ring-1 ring-inset ring-primary/20">
+              <Check className="size-3.5 text-primary" aria-hidden="true" />
+            </span>
+            <span className="min-w-28 flex-1 text-sm font-medium text-foreground">{source}</span>
+            <ArrowRight className="size-4 shrink-0 text-primary" aria-hidden="true" />
+            <span className="flex-1 text-sm text-muted-foreground">{target}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+function formatPhone(phone: string) {
+  return phone.replace(/^(\+54)(9)(\d{2})(\d{4})(\d{4})$/, "$1 $2 $3 $4 $5");
+}
+
+function formatShortDate(date: string) {
+  return new Intl.DateTimeFormat("es-AR", { day: "2-digit", month: "2-digit" }).format(
+    new Date(`${date}T12:00:00`),
   );
 }

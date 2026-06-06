@@ -16,7 +16,7 @@ export function DemoStartButton() {
 
   return (
     <Button size="lg" className="h-12 px-6" onClick={startDemo}>
-      Iniciar demo guiada
+      Iniciar demo
       <ArrowRight />
     </Button>
   );
