@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { DonorTable } from "@/components/DonorTable";
+import { Logo } from "@/components/logo";
 import { MetricCard } from "@/components/MetricCard";
 import { Button } from "@/components/ui/button";
 import { useDonors } from "@/hooks/use-donors";
@@ -38,6 +39,16 @@ export function DonorDashboard() {
 
   return (
     <div className="space-y-8">
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-4">
+        <Logo />
+        <div className="flex items-center gap-4">
+          <span className="hidden text-sm text-muted-foreground sm:block">donantes.xlsx</span>
+          <Button variant="ghost" size="sm" onClick={restartDemo}>
+            Reiniciar demo
+          </Button>
+        </div>
+      </div>
+
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight text-foreground">Donantes en riesgo</h1>
@@ -45,14 +56,9 @@ export function DonorDashboard() {
             Análisis del último ciclo de cobro · priorizado por severidad e impacto
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <span className="hidden rounded-full bg-accent px-3 py-1 text-xs font-medium text-accent-foreground ring-1 ring-inset ring-primary/15 sm:inline-flex">
-            Análisis completado
-          </span>
-          <Button variant="ghost" size="sm" onClick={restartDemo}>
-            Reiniciar demo
-          </Button>
-        </div>
+        <span className="hidden rounded-full bg-accent px-3 py-1 text-xs font-medium text-accent-foreground ring-1 ring-inset ring-primary/15 sm:inline-flex">
+          Análisis completado
+        </span>
       </div>
 
       <section className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
@@ -113,6 +119,10 @@ export function DonorDashboard() {
 function matchesFilter(donor: Donor, filter: FilterKey) {
   if (filter === "all") {
     return true;
+  }
+
+  if (donor.followUpStatus === "recovered" || donor.followUpStatus === "cancelled") {
+    return false;
   }
 
   const flags = getRiskFlags(donor);
