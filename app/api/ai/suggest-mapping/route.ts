@@ -112,7 +112,7 @@ Mapeá los siete campos requeridos. Para cada estado encontrado devolvé paid, f
     logAiOperation("suggest_mapping", "fallback", startedAt);
     return NextResponse.json({
       ...fallback,
-      warning: "Claude no está disponible. Usamos una sugerencia local que podés revisar.",
+      warning: "La IA no está disponible. Usamos una sugerencia local que podés revisar.",
     });
   }
 }

@@ -29,9 +29,6 @@ export function HomeScreen() {
       <main className="mx-auto max-w-6xl px-6">
         <section className="grid items-center gap-12 py-16 md:grid-cols-2 md:py-24">
           <div className="flex flex-col items-start gap-6">
-            <span className="inline-flex items-center rounded-full bg-accent px-3 py-1 text-xs font-medium text-accent-foreground ring-1 ring-inset ring-primary/15">
-              Retención de donantes para ONGs
-            </span>
             <h1 className="text-balance text-4xl font-semibold leading-tight tracking-tight text-foreground md:text-5xl">
               Reducí bajas de donantes desde tu planilla, sin perder el vínculo humano.
             </h1>

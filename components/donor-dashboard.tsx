@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { DonorTable } from "@/components/DonorTable";
@@ -16,21 +16,23 @@ import {
 } from "@/lib/donors";
 import type { Donor } from "@/types/donor";
 
-type FilterKey = "all" | "failed" | "stale_amount" | "stale_impact";
+type QueueView = "priority" | "failed" | "follow_up" | "resolved";
 
-const filters: { key: FilterKey; label: string }[] = [
-  { key: "all", label: "Todos" },
-  { key: "failed", label: "Pago rechazado" },
-  { key: "stale_amount", label: "Monto desactualizado" },
-  { key: "stale_impact", label: "Sin rendición" },
+const queueViews: { key: QueueView; label: string; description: string }[] = [
+  { key: "priority", label: "Prioridad de hoy", description: "Casos activos ordenados por urgencia e impacto." },
+  { key: "failed", label: "Pagos rechazados", description: "Aportes que pueden perderse si no se contactan rápido." },
+  { key: "follow_up", label: "Seguimiento preventivo", description: "Vínculos que necesitan actualización o impacto." },
+  { key: "resolved", label: "Ya resueltos", description: "Casos recuperados o dados de baja en esta demo." },
 ];
 
 export function DonorDashboard() {
   const router = useRouter();
   const { donors, resetDonors } = useDonors();
-  const [filter, setFilter] = useState<FilterKey>("all");
+  const [view, setView] = useState<QueueView>("priority");
   const metrics = getDashboardMetrics(donors);
-  const visibleDonors = sortDonorsByPriority(donors).filter((donor) => matchesFilter(donor, filter));
+  const sortedDonors = useMemo(() => sortDonorsByPriority(donors), [donors]);
+  const visibleDonors = sortedDonors.filter((donor) => matchesView(donor, view));
+  const selectedView = queueViews.find((item) => item.key === view) ?? queueViews[0];
 
   function restartDemo() {
     resetDonors();
@@ -56,9 +58,6 @@ export function DonorDashboard() {
             Análisis del último ciclo de cobro · priorizado por severidad e impacto
           </p>
         </div>
-        <span className="hidden rounded-full bg-accent px-3 py-1 text-xs font-medium text-accent-foreground ring-1 ring-inset ring-primary/15 sm:inline-flex">
-          Análisis completado
-        </span>
       </div>
 
       <section className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
@@ -90,50 +89,67 @@ export function DonorDashboard() {
         />
       </section>
 
-      <div className="flex flex-wrap gap-2" aria-label="Filtros de riesgo">
-        {filters.map((item) => {
-          const active = filter === item.key;
+      <section className="space-y-3" aria-label="Vistas de trabajo">
+        <div>
+          <h2 className="text-sm font-semibold text-foreground">Qué revisar ahora</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Elegí una vista de trabajo. La prioridad siempre sale de reglas simples, no de IA.
+          </p>
+        </div>
+        <div className="grid gap-3 md:grid-cols-4">
+          {queueViews.map((item) => {
+            const active = view === item.key;
+            const count = sortedDonors.filter((donor) => matchesView(donor, item.key)).length;
 
-          return (
-            <button
-              key={item.key}
-              type="button"
-              onClick={() => setFilter(item.key)}
-              className={
-                active
-                  ? "rounded-full bg-primary px-3.5 py-1.5 text-sm font-medium text-primary-foreground ring-1 ring-inset ring-primary"
-                  : "rounded-full bg-card px-3.5 py-1.5 text-sm font-medium text-muted-foreground ring-1 ring-inset ring-border transition-colors hover:text-foreground"
-              }
-            >
-              {item.label}
-            </button>
-          );
-        })}
-      </div>
+            return (
+              <button
+                key={item.key}
+                type="button"
+                onClick={() => setView(item.key)}
+                aria-pressed={active}
+                className={
+                  active
+                    ? "rounded-xl border border-primary bg-accent p-4 text-left shadow-xs"
+                    : "rounded-xl border border-border bg-card p-4 text-left transition-colors hover:border-primary/40 hover:bg-secondary/40"
+                }
+              >
+                <span className="flex items-start justify-between gap-3">
+                  <span className="text-sm font-semibold text-foreground">{item.label}</span>
+                  <span className={active ? "text-lg font-semibold text-primary" : "text-lg font-semibold text-foreground"}>
+                    {count}
+                  </span>
+                </span>
+                <span className="mt-2 block text-xs leading-relaxed text-muted-foreground">{item.description}</span>
+              </button>
+            );
+          })}
+        </div>
+      </section>
 
-      <DonorTable donors={visibleDonors} />
+      <DonorTable donors={visibleDonors} title={selectedView.label} description={selectedView.description} />
     </div>
   );
 }
 
-function matchesFilter(donor: Donor, filter: FilterKey) {
-  if (filter === "all") {
-    return true;
-  }
-
-  if (donor.followUpStatus === "recovered" || donor.followUpStatus === "cancelled") {
-    return false;
-  }
-
+function matchesView(donor: Donor, view: QueueView) {
   const flags = getRiskFlags(donor);
+  const isResolved = donor.followUpStatus === "recovered" || donor.followUpStatus === "cancelled";
+  const hasFollowUpRisk =
+    !isResolved &&
+    !flags.failedPayment &&
+    (flags.pendingPayment || flags.passiveChurn || flags.staleAmount || flags.staleImpact || flags.invalidPhone);
 
-  if (filter === "failed") {
-    return flags.failedPayment;
+  if (view === "priority") {
+    return (!isResolved && flags.failedPayment) || hasFollowUpRisk;
   }
 
-  if (filter === "stale_amount") {
-    return flags.staleAmount;
+  if (view === "failed") {
+    return !isResolved && flags.failedPayment;
   }
 
-  return flags.staleImpact;
+  if (view === "follow_up") {
+    return hasFollowUpRisk;
+  }
+
+  return isResolved;
 }

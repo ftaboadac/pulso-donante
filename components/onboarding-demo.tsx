@@ -161,10 +161,28 @@ export function OnboardingDemo() {
           Revisá cómo interpretamos tu planilla
         </h1>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-          Claude analiza las columnas y sugiere un mapeo inicial. Vos confirmás o corregís cada campo antes de detectar
-          los casos en riesgo.
+          La IA sugiere qué columna corresponde a cada dato. Nada se aplica solo: vos confirmás o corregís antes de
+          detectar casos en riesgo.
         </p>
       </div>
+
+      <section className="grid gap-3 md:grid-cols-3" aria-label="Cómo funciona el mapeo">
+        <ProcessStep
+          number="1"
+          title="Leemos la planilla"
+          description="Mostramos una muestra realista para que puedas reconocer los datos de origen."
+        />
+        <ProcessStep
+          number="2"
+          title="Sugerimos el mapeo"
+          description="La IA propone columnas y estados; las heurísticas locales cubren el fallback."
+        />
+        <ProcessStep
+          number="3"
+          title="Vos confirmás"
+          description="Recién después aplicamos reglas determinísticas para priorizar donantes."
+        />
+      </section>
 
       <section className="overflow-hidden rounded-xl border border-border bg-card">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-5 py-3">
@@ -206,12 +224,12 @@ export function OnboardingDemo() {
         {isAnalyzing ? (
           <>
             <LoaderCircle className="size-4 animate-spin text-primary" aria-hidden="true" />
-            <span className="font-medium text-primary">Claude está analizando</span>
+            <span className="font-medium text-primary">La IA está analizando</span>
           </>
         ) : suggestion.source === "claude" ? (
           <>
             <Sparkles className="size-4 text-primary" aria-hidden="true" />
-            <span className="font-medium text-primary">Sugerido por Claude</span>
+            <span className="font-medium text-primary">Sugerido por IA</span>
           </>
         ) : (
           <>
@@ -229,11 +247,14 @@ export function OnboardingDemo() {
       )}
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <MappingCard title="Mapeo sugerido de columnas" description="Campo de Pulso Donante → columna detectada">
+        <MappingCard
+          title="Mapeo de columnas"
+          description="Izquierda: dato que necesita Pulso Donante. Derecha: columna de tu planilla."
+        >
           {mappingEntries.map(([field, selectedColumn]) => (
             <li
               key={field}
-              className="grid gap-2 rounded-lg border border-border bg-secondary/40 px-3 py-3 sm:grid-cols-[1fr_auto_1.2fr] sm:items-center"
+              className="grid gap-2 rounded-lg border border-border bg-secondary/30 px-3 py-3 sm:grid-cols-[1fr_auto_1.2fr] sm:items-center"
             >
               <span className="text-sm font-medium text-foreground">{onboardingFieldLabels[field]}</span>
               <ArrowRight className="hidden size-4 text-primary sm:block" aria-hidden="true" />
@@ -255,11 +276,14 @@ export function OnboardingDemo() {
           ))}
         </MappingCard>
 
-        <MappingCard title="Normalización sugerida" description="Valor encontrado → estado interpretado">
+        <MappingCard
+          title="Estados de pago"
+          description="Cuando la planilla dice esto, Pulso lo interpreta como este estado."
+        >
           {Object.entries(suggestion.normalizations).map(([sourceValue, status]) => (
             <li
               key={sourceValue}
-              className="grid gap-2 rounded-lg border border-border bg-secondary/40 px-3 py-3 sm:grid-cols-[1fr_auto_1.2fr] sm:items-center"
+              className="grid gap-2 rounded-lg border border-border bg-secondary/30 px-3 py-3 sm:grid-cols-[1fr_auto_1.2fr] sm:items-center"
             >
               <span className="text-sm font-medium text-foreground">{sourceValue}</span>
               <ArrowRight className="hidden size-4 text-primary sm:block" aria-hidden="true" />
@@ -331,7 +355,7 @@ async function getMappingSuggestion(request: SuggestMappingRequest) {
       })
       .catch(() => ({
         ...buildFallbackMapping(request.columns, defaultStatusValues),
-        warning: "Claude no está disponible. Usamos una sugerencia local que podés revisar.",
+        warning: "La IA no está disponible. Usamos una sugerencia local que podés revisar.",
       }));
   }
 
@@ -361,5 +385,19 @@ function formatPhone(phone: string) {
 function formatShortDate(date: string) {
   return new Intl.DateTimeFormat("es-AR", { day: "2-digit", month: "2-digit" }).format(
     new Date(`${date}T12:00:00`),
+  );
+}
+
+function ProcessStep({ number, title, description }: { number: string; title: string; description: string }) {
+  return (
+    <div className="rounded-xl border border-border bg-card p-4">
+      <div className="flex items-center gap-3">
+        <span className="flex size-7 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
+          {number}
+        </span>
+        <h2 className="text-sm font-semibold text-foreground">{title}</h2>
+      </div>
+      <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{description}</p>
+    </div>
   );
 }

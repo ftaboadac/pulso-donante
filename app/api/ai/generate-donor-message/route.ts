@@ -82,7 +82,7 @@ ${JSON.stringify({
     return NextResponse.json({
       source: "fallback",
       message: fallbackMessage,
-      warning: "Claude no está disponible. Conservamos el mensaje seguro original.",
+      warning: "La IA no está disponible. Conservamos el mensaje seguro original.",
     });
   }
 }
@@ -95,4 +95,3 @@ function logAiOperation(operation: string, result: string, startedAt: number, re
     requestId: requestId ?? undefined,
   });
 }
-

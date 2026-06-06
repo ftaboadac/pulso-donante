@@ -55,7 +55,7 @@ export function getRiskReasons(donor: Donor) {
   }
 
   if (flags.staleImpact) {
-    reasons.push(`Sin rendición de impacto hace ${impactContactDays} días`);
+    reasons.push(`Sin contacto de impacto hace ${impactContactDays} días`);
   }
 
   if (flags.invalidPhone) {

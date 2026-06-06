@@ -21,7 +21,7 @@ export const onboardingFieldLabels: Record<OnboardingField, string> = {
   paymentStatus: "Estado de pago",
   lastPaymentDate: "Último pago",
   lastImpactContactDate: "Último contacto",
-  cause: "Causa",
+  cause: "Área de impacto",
 };
 
 export const paymentStatuses = ["paid", "failed", "pending", "unknown"] as const satisfies PaymentStatus[];
@@ -76,4 +76,3 @@ export const generateMessageResponseSchema = z.object({
 
 export type GenerateMessageRequest = z.infer<typeof generateMessageRequestSchema>;
 export type GenerateMessageResponse = z.infer<typeof generateMessageResponseSchema>;
-

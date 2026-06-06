@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
   CalendarDays,
   Check,
   Clipboard,
+  Clock,
   ExternalLink,
   HeartHandshake,
   LoaderCircle,
@@ -15,10 +16,11 @@ import {
   RotateCcw,
   ShieldCheck,
   Sparkles,
+  TriangleAlert,
   WalletCards,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
-import { FollowUpBadge, RiskBadge } from "@/components/donor-status";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -27,9 +29,11 @@ import {
   buildWaLink,
   followUpStatusLabels,
   formatCurrency,
+  getRiskFlags,
   getDonorRisk,
   paymentStatusLabels,
 } from "@/lib/donors";
+import { daysSince } from "@/lib/risk";
 import { useDonors } from "@/hooks/use-donors";
 import { generateMessageResponseSchema } from "@/types/ai";
 import type { Donor, FollowUpStatus } from "@/types/donor";
@@ -47,6 +51,7 @@ export function DonorDetail({ donor: initialDonor }: { donor: Donor }) {
   const [copyError, setCopyError] = useState("");
 
   const risk = getDonorRisk(donor);
+  const reasonCards = getReasonCards(donor);
   const annualAmount = donor.monthlyAmount * 12;
 
   async function copyMessage() {
@@ -61,7 +66,7 @@ export function DonorDetail({ donor: initialDonor }: { donor: Donor }) {
     }
 
     try {
-      await navigator.clipboard.writeText(message);
+      await copyWithClipboard(message);
       showCopiedState();
     } catch {
       setCopyError("No pudimos copiar automáticamente. Seleccioná el texto del mensaje y copialo manualmente.");
@@ -93,10 +98,10 @@ export function DonorDetail({ donor: initialDonor }: { donor: Donor }) {
         setMessage(payload.message);
         setMessageSource("claude");
       } else {
-        setAiWarning(payload.warning ?? "Claude no está disponible. Conservamos el mensaje original.");
+        setAiWarning(payload.warning ?? "La IA no está disponible. Conservamos el mensaje original.");
       }
     } catch {
-      setAiWarning("Claude no está disponible. Conservamos el mensaje original.");
+      setAiWarning("La IA no está disponible. Conservamos el mensaje original.");
     } finally {
       setIsGenerating(false);
     }
@@ -119,12 +124,11 @@ export function DonorDetail({ donor: initialDonor }: { donor: Donor }) {
 
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
         <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <RiskBadge donor={donor} />
-            <FollowUpBadge donor={donor} />
-          </div>
+          <p className="text-sm font-medium text-primary">Caso de retención</p>
           <h1 className="mt-3 text-3xl font-semibold tracking-tight">{donor.name}</h1>
-          <p className="mt-2 text-muted-foreground">{donor.cause}</p>
+          <p className="mt-2 text-muted-foreground">
+            Revisá el diagnóstico, ajustá el mensaje y registrá el resultado del contacto.
+          </p>
         </div>
         <div className="rounded-xl border bg-card px-5 py-4 shadow-xs">
           <p className="text-sm text-muted-foreground">Aporte mensual</p>
@@ -140,15 +144,24 @@ export function DonorDetail({ donor: initialDonor }: { donor: Donor }) {
               <CardDescription>Estas reglas determinaron la prioridad del caso.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              {risk.reasons.length > 0 ? (
-                risk.reasons.map((reason) => (
-                  <div key={reason} className="flex items-center gap-3 rounded-lg bg-secondary p-3">
-                    <span className="flex size-7 items-center justify-center rounded-full bg-white text-primary shadow-xs">
-                      <Check className="size-4" />
-                    </span>
-                    <span className="text-sm font-medium">{reason}</span>
-                  </div>
-                ))
+              {reasonCards.length > 0 ? (
+                <div className="space-y-3">
+                  {reasonCards.map((item) => (
+                    <div key={item.title} className={`rounded-xl border p-4 ${item.cardClassName}`}>
+                      <div className="flex items-start gap-3">
+                        <span
+                          className={`mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full shadow-xs ${item.iconClassName}`}
+                        >
+                          <item.icon className="size-4" />
+                        </span>
+                        <div>
+                          <p className="text-sm font-semibold text-foreground">{item.title}</p>
+                          <p className="mt-1 text-sm leading-6 text-muted-foreground">{item.description}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               ) : (
                 <p className="rounded-lg bg-accent p-4 text-sm text-accent-foreground">
                   Este vínculo ya no tiene alertas activas.
@@ -184,103 +197,134 @@ export function DonorDetail({ donor: initialDonor }: { donor: Donor }) {
           </Card>
         </div>
 
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MessageCircle className="size-5 text-primary" />
-                Mensaje sugerido
-              </CardTitle>
-              <CardDescription>Revisalo y editá el tono antes de abrir WhatsApp. Nunca se envía automáticamente.</CardDescription>
+        <div>
+          <Card className="overflow-hidden border-primary/20">
+            <CardHeader className="border-b border-border bg-primary/5">
+              <CardTitle>Contacto y seguimiento</CardTitle>
+              <CardDescription>
+                Prepará el mensaje, contactá por WhatsApp y registrá qué pasó con el vínculo.
+              </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <span className="inline-flex items-center gap-1.5 text-xs font-medium text-primary">
-                  {messageSource === "claude" ? <Sparkles className="size-3.5" /> : <ShieldCheck className="size-3.5" />}
-                  {messageSource === "claude" ? "Borrador generado con Claude" : "Template seguro"}
-                </span>
-                <div className="flex flex-wrap gap-2">
-                  <Button type="button" size="sm" variant="outline" onClick={generateMessage} disabled={isGenerating}>
-                    {isGenerating ? <LoaderCircle className="animate-spin" /> : <Sparkles />}
-                    {isGenerating ? "Claude está redactando" : "Generar con Claude"}
-                  </Button>
-                  <Button type="button" size="sm" variant="ghost" onClick={restoreOriginalMessage}>
-                    <RotateCcw />
-                    Volver al mensaje original
-                  </Button>
-                </div>
-              </div>
-              {aiWarning && (
-                <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-                  {aiWarning}
+            <CardContent className="space-y-5 pt-6">
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50/80 p-4 text-sm text-emerald-950">
+                <p className="font-semibold">Próxima acción recomendada</p>
+                <p className="mt-1 leading-6">
+                  Abrí WhatsApp con el mensaje revisado y, después del contacto, registrá el resultado para actualizar
+                  el dashboard.
                 </p>
-              )}
-              {copyError && (
-                <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-                  {copyError}
-                </p>
-              )}
-              <Textarea
-                value={message}
-                onChange={(event) => setMessage(event.target.value)}
-                className="min-h-56 resize-y leading-6"
-                aria-label="Mensaje sugerido para WhatsApp"
-              />
-              <div className="flex flex-col gap-3 sm:flex-row">
-                <Button asChild size="lg" className="flex-1 bg-emerald-600 hover:bg-emerald-700">
-                  <a href={buildWaLink(donor, message)} target="_blank" rel="noreferrer">
-                    <MessageCircle />
-                    Abrir en WhatsApp
-                    <ExternalLink />
-                  </a>
-                </Button>
-                <Button size="lg" variant="outline" onClick={copyMessage}>
-                  {copied ? <Check /> : <Clipboard />}
-                  {copied ? "Copiado" : "Copiar mensaje"}
-                </Button>
               </div>
-              <div className="flex items-start gap-2 text-xs leading-5 text-muted-foreground">
-                <ShieldCheck className="mt-0.5 size-4 shrink-0" />
-                No pedimos ni guardamos tarjeta, CBU ni datos financieros sensibles.
-              </div>
-            </CardContent>
-          </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Registrar seguimiento</CardTitle>
-              <CardDescription>El estado actualiza las métricas del dashboard inmediatamente.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <label className="grid gap-2 text-sm font-medium">
-                Estado del vínculo
-                <select
-                  value={donor.followUpStatus}
-                  onChange={(event) => updateDonorStatus(donor.id, event.target.value as FollowUpStatus)}
-                  className="h-10 rounded-md border border-input bg-background px-3 text-sm outline-none focus:border-ring focus:ring-3 focus:ring-ring/20"
-                >
-                  {followUpOptions.map(([value, label]) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              {donor.followUpStatus !== "recovered" ? (
-                <Button className="w-full" onClick={() => updateDonorStatus(donor.id, "recovered")}>
-                  <HeartHandshake />
-                  Marcar como recuperado
-                </Button>
-              ) : (
-                <div className="rounded-xl bg-accent p-4 text-sm text-accent-foreground">
-                  <p className="font-semibold">¡Aporte recuperado!</p>
-                  <p className="mt-1">
-                    Sumaste {formatCurrency(donor.monthlyAmount)} mensuales y {formatCurrency(annualAmount)} anualizados
-                    al ingreso preservado.
-                  </p>
+              <WorkflowStep
+                number="1"
+                title="Preparar el mensaje"
+                description="La persona de la ONG puede editarlo antes de contactar. La IA solo ayuda a redactar."
+              >
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-2.5 py-1 text-xs font-medium text-muted-foreground">
+                    {messageSource === "claude" ? <Sparkles className="size-3.5 text-primary" /> : <ShieldCheck className="size-3.5 text-primary" />}
+                    {messageSource === "claude" ? "Borrador sugerido por IA" : "Mensaje base editable"}
+                  </span>
+                  <div className="flex flex-wrap gap-2">
+                    <Button type="button" size="sm" variant="outline" onClick={generateMessage} disabled={isGenerating}>
+                      {isGenerating ? <LoaderCircle className="animate-spin" /> : <Sparkles />}
+                      {isGenerating ? "Redactando" : "Sugerir con IA"}
+                    </Button>
+                    <Button type="button" size="sm" variant="ghost" onClick={restoreOriginalMessage}>
+                      <RotateCcw />
+                      Restaurar base
+                    </Button>
+                  </div>
                 </div>
-              )}
-              <p className="text-xs text-muted-foreground">El cambio queda guardado en este navegador.</p>
+
+                {aiWarning && (
+                  <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                    {aiWarning}
+                  </p>
+                )}
+
+                <Textarea
+                  value={message}
+                  onChange={(event) => setMessage(event.target.value)}
+                  className="min-h-52 resize-y bg-background leading-6"
+                  aria-label="Mensaje sugerido para WhatsApp"
+                />
+              </WorkflowStep>
+
+              <WorkflowStep
+                number="2"
+                title="Contactar por WhatsApp"
+                description="WhatsApp se abre con texto precargado. La persona revisa y envía manualmente."
+              >
+                {copyError && (
+                  <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                    {copyError}
+                  </p>
+                )}
+                <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+                  <Button asChild size="lg" className="bg-emerald-600 hover:bg-emerald-700">
+                    <a href={buildWaLink(donor, message)} target="_blank" rel="noreferrer">
+                      <MessageCircle />
+                      Abrir WhatsApp
+                      <ExternalLink />
+                    </a>
+                  </Button>
+                  <Button size="lg" variant="outline" onClick={copyMessage}>
+                    {copied ? <Check /> : <Clipboard />}
+                    {copied ? "Copiado" : "Copiar"}
+                  </Button>
+                </div>
+                <div className="flex items-start gap-2 text-xs leading-5 text-muted-foreground">
+                  <ShieldCheck className="mt-0.5 size-4 shrink-0" />
+                  No se envía automáticamente y no se piden tarjeta, CBU ni datos financieros sensibles.
+                </div>
+              </WorkflowStep>
+
+              <WorkflowStep
+                number="3"
+                title="Registrar resultado"
+                description="Este cambio recalcula las métricas del dashboard."
+              >
+                <label className="grid gap-2 text-sm font-medium">
+                  Estado del vínculo
+                  <select
+                    value={donor.followUpStatus}
+                    onChange={(event) => updateDonorStatus(donor.id, event.target.value as FollowUpStatus)}
+                    className="h-11 rounded-md border border-input bg-background px-3 text-sm outline-none focus:border-ring focus:ring-3 focus:ring-ring/20"
+                  >
+                    {followUpOptions.map(([value, label]) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <p className="text-xs leading-5 text-muted-foreground">{getFollowUpHint(donor.followUpStatus)}</p>
+
+                {donor.followUpStatus !== "recovered" ? (
+                  <div className="rounded-xl border border-emerald-200 bg-emerald-50/80 p-4">
+                    <p className="text-sm font-semibold text-emerald-950">Si regularizó el aporte</p>
+                    <p className="mt-1 text-sm leading-6 text-emerald-900">
+                      Marcá recuperado para sumar {formatCurrency(donor.monthlyAmount)} mensuales y{" "}
+                      {formatCurrency(annualAmount)} anualizados al ingreso preservado.
+                    </p>
+                    <Button
+                      className="mt-3 w-full bg-emerald-600 hover:bg-emerald-700"
+                      onClick={() => updateDonorStatus(donor.id, "recovered")}
+                    >
+                      <HeartHandshake />
+                      Marcar como recuperado
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="rounded-xl bg-accent p-4 text-sm text-accent-foreground">
+                    <p className="font-semibold">Aporte recuperado</p>
+                    <p className="mt-1">
+                      Sumaste {formatCurrency(donor.monthlyAmount)} mensuales y {formatCurrency(annualAmount)}{" "}
+                      anualizados al ingreso preservado.
+                    </p>
+                  </div>
+                )}
+              </WorkflowStep>
             </CardContent>
           </Card>
         </div>
@@ -303,10 +347,138 @@ function DetailRow({ icon: Icon, label, value }: { icon: typeof Phone; label: st
   );
 }
 
+function WorkflowStep({
+  number,
+  title,
+  description,
+  children,
+}: {
+  number: string;
+  title: string;
+  description: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="rounded-xl border border-border bg-card p-4">
+      <div className="flex items-start gap-3">
+        <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
+          {number}
+        </span>
+        <div>
+          <h2 className="text-sm font-semibold text-foreground">{title}</h2>
+          <p className="mt-1 text-sm leading-6 text-muted-foreground">{description}</p>
+        </div>
+      </div>
+      <div className="mt-4 space-y-3">{children}</div>
+    </section>
+  );
+}
+
+function getFollowUpHint(status: FollowUpStatus) {
+  if (status === "pending") {
+    return "Todavía no hubo contacto o falta registrar qué pasó.";
+  }
+
+  if (status === "contacted") {
+    return "Ya hubo contacto, pero el aporte aún no está recuperado.";
+  }
+
+  if (status === "recovered") {
+    return "El aporte vuelve a contar como ingreso preservado.";
+  }
+
+  if (status === "wants_increase") {
+    return "La persona mostró interés en aumentar su aporte.";
+  }
+
+  if (status === "needs_follow_up") {
+    return "Queda una próxima conversación pendiente.";
+  }
+
+  return "La persona pidió la baja; el caso deja de sumar al riesgo activo.";
+}
+
 function formatDate(date: string) {
   return new Intl.DateTimeFormat("es-AR", { day: "numeric", month: "long", year: "numeric" }).format(
     new Date(`${date}T12:00:00`),
   );
+}
+
+function getReasonCards(donor: Donor) {
+  const flags = getRiskFlags(donor);
+  const cards: {
+    title: string;
+    description: string;
+    icon: LucideIcon;
+    cardClassName: string;
+    iconClassName: string;
+  }[] = [];
+
+  if (flags.failedPayment) {
+    cards.push({
+      title: "Pago rechazado",
+      description: `El último cobro falló hace ${daysSince(
+        donor.lastPaymentDate,
+      )} días. Este aporte suma al riesgo crítico hasta que la persona lo regularice o se registre una baja.`,
+      icon: WalletCards,
+      cardClassName: "border-red-200 bg-red-50/70",
+      iconClassName: "bg-white text-red-700",
+    });
+  } else if (flags.pendingPayment) {
+    cards.push({
+      title: "Pago pendiente",
+      description: "El cobro todavía no está confirmado. Conviene revisar el caso antes de que se convierta en baja.",
+      icon: Clock,
+      cardClassName: "border-amber-200 bg-amber-50/70",
+      iconClassName: "bg-white text-amber-700",
+    });
+  } else if (flags.passiveChurn) {
+    cards.push({
+      title: "Posible baja pasiva",
+      description: `El último pago fue hace ${daysSince(
+        donor.lastPaymentDate,
+      )} días. Puede ser un vínculo que se está enfriando sin pedir la baja explícitamente.`,
+      icon: TriangleAlert,
+      cardClassName: "border-amber-200 bg-amber-50/70",
+      iconClassName: "bg-white text-amber-700",
+    });
+  }
+
+  if (flags.staleAmount) {
+    cards.push({
+      title: "Monto desactualizado",
+      description: `El aporte no se actualiza hace ${daysSince(
+        donor.lastAmountUpdateDate,
+      )} días. Puede ser buen momento para proponer una actualización cuidada.`,
+      icon: WalletCards,
+      cardClassName: "border-sky-200 bg-sky-50/70",
+      iconClassName: "bg-white text-sky-700",
+    });
+  }
+
+  if (flags.staleImpact) {
+    cards.push({
+      title: "Falta contar impacto",
+      description: `Pasaron ${daysSince(
+        donor.lastImpactContactDate,
+      )} días desde el último contacto de impacto. El mensaje debería reconectar el aporte con un resultado concreto.`,
+      icon: HeartHandshake,
+      cardClassName: "border-teal-200 bg-teal-50/70",
+      iconClassName: "bg-white text-teal-700",
+    });
+  }
+
+  if (flags.invalidPhone) {
+    cards.push({
+      title: "Teléfono a revisar",
+      description: "El número no tiene un formato válido para abrir WhatsApp con seguridad.",
+      icon: Phone,
+      cardClassName: "border-zinc-200 bg-zinc-50",
+      iconClassName: "bg-white text-zinc-700",
+    });
+  }
+
+  return cards;
 }
 
 function copyWithDocumentFallback(message: string) {
@@ -314,13 +486,29 @@ function copyWithDocumentFallback(message: string) {
   textarea.value = message;
   textarea.setAttribute("readonly", "");
   textarea.style.position = "fixed";
-  textarea.style.opacity = "0";
+  textarea.style.top = "0";
+  textarea.style.left = "-9999px";
+  textarea.style.width = "1px";
+  textarea.style.height = "1px";
   document.body.appendChild(textarea);
+  textarea.focus();
   textarea.select();
+  textarea.setSelectionRange(0, textarea.value.length);
   const copied = document.execCommand("copy");
   document.body.removeChild(textarea);
 
   if (!copied) {
     throw new Error("Copy command was rejected.");
   }
+}
+
+async function copyWithClipboard(message: string) {
+  if (!navigator.clipboard || !window.isSecureContext) {
+    throw new Error("Clipboard API is unavailable.");
+  }
+
+  await Promise.race([
+    navigator.clipboard.writeText(message),
+    new Promise((_, reject) => window.setTimeout(() => reject(new Error("Clipboard API timed out.")), 700)),
+  ]);
 }
