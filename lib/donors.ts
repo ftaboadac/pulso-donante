@@ -3,8 +3,8 @@ import type { Donor, FollowUpStatus, PaymentStatus } from "@/types/donor";
 export { getDashboardMetrics, getDonorMetrics } from "@/lib/metrics";
 export type { DashboardMetrics, DonorMetrics } from "@/lib/metrics";
 export { buildDonorMessage, formatCurrency } from "@/lib/messages";
-export { getDonorRisk, getPriority, getRiskReasons, sortDonorsByPriority } from "@/lib/risk";
-export type { DonorRisk } from "@/lib/risk";
+export { getDonorRisk, getPriority, getRiskFlags, getRiskReasons, sortDonorsByPriority } from "@/lib/risk";
+export type { DonorRisk, DonorRiskFlags } from "@/lib/risk";
 export { buildWaLink, buildWhatsAppLink } from "@/lib/whatsapp";
 
 export const donorsSeed: Donor[] = [

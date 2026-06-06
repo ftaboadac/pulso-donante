@@ -1,166 +1,139 @@
 "use client";
 
-import Link from "next/link";
-import { ArrowRight, CircleAlert, CircleDollarSign, HeartHandshake, TrendingUp, Users } from "lucide-react";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 
-import { RiskBadge } from "@/components/donor-status";
+import { DonorTable } from "@/components/DonorTable";
+import { Logo } from "@/components/logo";
+import { MetricCard } from "@/components/MetricCard";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useDonors } from "@/hooks/use-donors";
 import {
   formatCurrency,
   getDashboardMetrics,
-  getDonorRisk,
-  paymentStatusLabels,
+  getRiskFlags,
   sortDonorsByPriority,
 } from "@/lib/donors";
-import { cn } from "@/lib/utils";
+import type { Donor } from "@/types/donor";
+
+type FilterKey = "all" | "failed" | "stale_amount" | "stale_impact";
+
+const filters: { key: FilterKey; label: string }[] = [
+  { key: "all", label: "Todos" },
+  { key: "failed", label: "Pago rechazado" },
+  { key: "stale_amount", label: "Monto desactualizado" },
+  { key: "stale_impact", label: "Sin rendición" },
+];
 
 export function DonorDashboard() {
-  const { donors } = useDonors();
+  const router = useRouter();
+  const { donors, resetDonors } = useDonors();
+  const [filter, setFilter] = useState<FilterKey>("all");
   const metrics = getDashboardMetrics(donors);
-  const visibleDonors = sortDonorsByPriority(donors);
+  const visibleDonors = sortDonorsByPriority(donors).filter((donor) => matchesFilter(donor, filter));
+
+  function restartDemo() {
+    resetDonors();
+    router.push("/");
+  }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-        <div>
-          <p className="text-sm font-medium text-primary">Pulso de hoy</p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight">¿Qué vínculos necesitan atención?</h1>
-          <p className="mt-2 text-muted-foreground">
-            Casos ordenados por severidad y aporte mensual. Empezá por los de mayor impacto.
-          </p>
+    <div className="space-y-8">
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-4">
+        <Logo />
+        <div className="flex items-center gap-4">
+          <span className="hidden text-sm text-muted-foreground sm:block">donantes.xlsx</span>
+          <Button variant="ghost" size="sm" onClick={restartDemo}>
+            Reiniciar demo
+          </Button>
         </div>
-        <Button asChild variant="outline" size="sm">
-          <Link href="/onboarding">Ver planilla demo</Link>
-        </Button>
       </div>
 
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-semibold tracking-tight text-foreground">Donantes en riesgo</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Análisis del último ciclo de cobro · priorizado por severidad e impacto
+          </p>
+        </div>
+        <span className="hidden rounded-full bg-accent px-3 py-1 text-xs font-medium text-accent-foreground ring-1 ring-inset ring-primary/15 sm:inline-flex">
+          Análisis completado
+        </span>
+      </div>
+
+      <section className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
+        <MetricCard value={String(metrics.totalDonors)} label="Donantes cargados" />
         <MetricCard
-          icon={CircleDollarSign}
-          label="En riesgo este mes"
-          value={formatCurrency(metrics.criticalMonthlyAtRisk)}
-          detail={`${metrics.criticalRiskCount} pagos rechazados`}
+          value={String(metrics.criticalRiskCount)}
+          label="Pagos rechazados prioritarios"
           tone="danger"
         />
         <MetricCard
-          icon={TrendingUp}
-          label="Riesgo anualizado"
+          value={formatCurrency(metrics.criticalMonthlyAtRisk)}
+          label="Mensuales en riesgo crítico"
+          tone="danger"
+        />
+        <MetricCard
           value={formatCurrency(metrics.criticalAnnualAtRisk)}
-          detail="Si no se recuperan"
+          label="Anualizados en juego"
+          tone="warning"
         />
         <MetricCard
-          icon={Users}
-          label="Otros seguimientos"
-          value={String(metrics.additionalFollowUpCount)}
-          detail="Monto, rendición o pendiente"
-        />
-        <MetricCard
-          icon={HeartHandshake}
-          label="Ingreso preservado"
           value={formatCurrency(metrics.monthlyRecovered)}
+          label="Recuperados"
           detail={`${formatCurrency(metrics.annualRecovered)} anualizados`}
           tone="success"
         />
+        <MetricCard
+          value={String(metrics.additionalFollowUpCount)}
+          label="Casos adicionales requieren seguimiento"
+        />
       </section>
 
-      <div className="flex items-start gap-3 rounded-xl border border-primary/15 bg-primary/5 p-4 text-sm">
-        <CircleAlert className="mt-0.5 size-5 shrink-0 text-primary" />
-        <p>
-          <strong>Foco recomendado:</strong> atendé primero los pagos rechazados. Son los casos más accionables para
-          reducir bajas pasivas.
-        </p>
+      <div className="flex flex-wrap gap-2" aria-label="Filtros de riesgo">
+        {filters.map((item) => {
+          const active = filter === item.key;
+
+          return (
+            <button
+              key={item.key}
+              type="button"
+              onClick={() => setFilter(item.key)}
+              className={
+                active
+                  ? "rounded-full bg-primary px-3.5 py-1.5 text-sm font-medium text-primary-foreground ring-1 ring-inset ring-primary"
+                  : "rounded-full bg-card px-3.5 py-1.5 text-sm font-medium text-muted-foreground ring-1 ring-inset ring-border transition-colors hover:text-foreground"
+              }
+            >
+              {item.label}
+            </button>
+          );
+        })}
       </div>
 
-      <Card>
-        <CardContent className="p-0">
-          <div className="flex flex-col gap-4 border-b p-5 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h2 className="font-semibold">Cola priorizada</h2>
-              <p className="mt-1 text-sm text-muted-foreground">{metrics.totalDonors} donantes cargados desde la planilla demo</p>
-            </div>
-            <p className="text-xs text-muted-foreground">TODO: agregar filtros por tipo de riesgo.</p>
-          </div>
-
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="pl-5">Donante</TableHead>
-                <TableHead>Riesgo</TableHead>
-                <TableHead className="hidden md:table-cell">Motivo</TableHead>
-                <TableHead>Estado de pago</TableHead>
-                <TableHead className="text-right">Aporte</TableHead>
-                <TableHead className="w-12 pr-5" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {visibleDonors.map((donor) => {
-                const risk = getDonorRisk(donor);
-                return (
-                  <TableRow key={donor.id} className="group">
-                    <TableCell className="pl-5">
-                      <Link href={`/donor/${donor.id}`} className="font-medium hover:text-primary">
-                        {donor.name}
-                      </Link>
-                      <p className="mt-0.5 text-xs text-muted-foreground">{donor.cause}</p>
-                    </TableCell>
-                    <TableCell>
-                      <RiskBadge donor={donor} />
-                    </TableCell>
-                    <TableCell className="hidden max-w-64 md:table-cell">
-                      <span className="line-clamp-1 text-muted-foreground">{risk.reasons.join(" · ") || "Sin alertas"}</span>
-                    </TableCell>
-                    <TableCell>{paymentStatusLabels[donor.paymentStatus]}</TableCell>
-                    <TableCell className="text-right font-medium">{formatCurrency(donor.monthlyAmount)}</TableCell>
-                    <TableCell className="pr-5">
-                      <Button asChild variant="ghost" size="icon" aria-label={`Abrir detalle de ${donor.name}`}>
-                        <Link href={`/donor/${donor.id}`}>
-                          <ArrowRight />
-                        </Link>
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+      <DonorTable donors={visibleDonors} />
     </div>
   );
 }
 
-function MetricCard({
-  icon: Icon,
-  label,
-  value,
-  detail,
-  tone = "default",
-}: {
-  icon: typeof CircleDollarSign;
-  label: string;
-  value: string;
-  detail: string;
-  tone?: "default" | "danger" | "success";
-}) {
-  return (
-    <Card className={cn(tone === "danger" && "border-red-200", tone === "success" && "border-emerald-200")}>
-      <CardContent className="p-5">
-        <div
-          className={cn(
-            "flex size-9 items-center justify-center rounded-lg bg-secondary text-primary",
-            tone === "danger" && "bg-red-50 text-red-700",
-            tone === "success" && "bg-emerald-50 text-emerald-700",
-          )}
-        >
-          <Icon className="size-5" />
-        </div>
-        <p className="mt-4 text-sm text-muted-foreground">{label}</p>
-        <p className="mt-1 text-2xl font-semibold tracking-tight">{value}</p>
-        <p className="mt-1 text-xs text-muted-foreground">{detail}</p>
-      </CardContent>
-    </Card>
-  );
+function matchesFilter(donor: Donor, filter: FilterKey) {
+  if (filter === "all") {
+    return true;
+  }
+
+  if (donor.followUpStatus === "recovered" || donor.followUpStatus === "cancelled") {
+    return false;
+  }
+
+  const flags = getRiskFlags(donor);
+
+  if (filter === "failed") {
+    return flags.failedPayment;
+  }
+
+  if (filter === "stale_amount") {
+    return flags.staleAmount;
+  }
+
+  return flags.staleImpact;
 }

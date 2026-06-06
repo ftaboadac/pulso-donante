@@ -111,8 +111,10 @@ Reglas obligatorias:
 
 - Nunca aplicar un mapeo sugerido sin confirmación humana.
 - Mostrar la sugerencia de IA como editable y corregible.
+- Invocar Claude una sola vez por sesión al entrar al onboarding y cachear el resultado en `sessionStorage`.
 - Mantener heurísticas simples de mapeo como fallback.
 - Mantener templates de mensajes como fallback.
+- Mantener visible el template hasta que Claude devuelva un borrador válido.
 - Si la IA falla, el loop prioritario debe seguir funcionando.
 - No pedir a la ONG una API key ni una cuenta de OpenAI o Anthropic.
 - Para el MVP, asumir que la API de IA es administrada por la plataforma.
@@ -131,6 +133,9 @@ La automatización futura solo puede considerarse para mensajes de bajo riesgo y
 - Preferir Server Actions para mutaciones simples si se agrega persistencia.
 - Usar API routes solo para integraciones externas, uploads, webhooks o IA.
 - Mantener clientes de SDK lazy para que `next build` funcione sin variables.
+- Usar `ANTHROPIC_API_KEY` solo en servidor y `ANTHROPIC_MODEL=claude-sonnet-4-6` por defecto.
+- Validar entradas y salidas de IA con `zod`; usar structured outputs para el mapeo.
+- No registrar prompts, nombres, teléfonos ni mensajes. Solo operación, resultado, latencia y request ID.
 - No agregar backend separado, Docker, colas, Redis ni microservicios.
 - No agregar Supabase hasta que la persistencia sea una necesidad explícita.
 
@@ -141,6 +146,8 @@ La automatización futura solo puede considerarse para mensajes de bajo riesgo y
 - `components/ui/`: primitivas de interfaz.
 - `hooks/use-donors.ts`: estado y persistencia de la demo.
 - `lib/donors.ts`: seed, reglas, métricas, mensajes y enlaces.
+- `lib/anthropic.ts`: cliente lazy de Anthropic, exclusivamente server-only.
+- `types/ai.ts`: contratos compartidos para los endpoints de IA.
 - `types/donor.ts`: contrato compartido.
 - `supabase/schema.sql`: esquema futuro, solo si se adopta Supabase.
 
