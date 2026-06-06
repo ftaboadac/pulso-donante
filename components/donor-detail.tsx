@@ -9,9 +9,12 @@ import {
   Clipboard,
   ExternalLink,
   HeartHandshake,
+  LoaderCircle,
   MessageCircle,
   Phone,
+  RotateCcw,
   ShieldCheck,
+  Sparkles,
   WalletCards,
 } from "lucide-react";
 
@@ -28,6 +31,7 @@ import {
   paymentStatusLabels,
 } from "@/lib/donors";
 import { useDonors } from "@/hooks/use-donors";
+import { generateMessageResponseSchema } from "@/types/ai";
 import type { Donor, FollowUpStatus } from "@/types/donor";
 
 const followUpOptions = Object.entries(followUpStatusLabels) as [FollowUpStatus, string][];
@@ -37,14 +41,71 @@ export function DonorDetail({ donor: initialDonor }: { donor: Donor }) {
   const donor = getDonor(initialDonor.id) ?? initialDonor;
   const [message, setMessage] = useState(() => buildDonorMessage(initialDonor));
   const [copied, setCopied] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [messageSource, setMessageSource] = useState<"template" | "claude">("template");
+  const [aiWarning, setAiWarning] = useState("");
+  const [copyError, setCopyError] = useState("");
 
   const risk = getDonorRisk(donor);
   const annualAmount = donor.monthlyAmount * 12;
 
   async function copyMessage() {
-    await navigator.clipboard.writeText(message);
+    setCopyError("");
+
+    try {
+      copyWithDocumentFallback(message);
+      showCopiedState();
+      return;
+    } catch {
+      // Some browsers disable the legacy copy command but allow the Clipboard API.
+    }
+
+    try {
+      await navigator.clipboard.writeText(message);
+      showCopiedState();
+    } catch {
+      setCopyError("No pudimos copiar automáticamente. Seleccioná el texto del mensaje y copialo manualmente.");
+    }
+  }
+
+  function showCopiedState() {
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1800);
+  }
+
+  async function generateMessage() {
+    setIsGenerating(true);
+    setAiWarning("");
+
+    try {
+      const response = await fetch("/api/ai/generate-donor-message", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ donorId: donor.id }),
+      });
+      const payload = generateMessageResponseSchema.parse(await response.json());
+
+      if (!response.ok) {
+        throw new Error(payload.warning ?? "No pudimos generar el mensaje.");
+      }
+
+      if (payload.source === "claude") {
+        setMessage(payload.message);
+        setMessageSource("claude");
+      } else {
+        setAiWarning(payload.warning ?? "Claude no está disponible. Conservamos el mensaje original.");
+      }
+    } catch {
+      setAiWarning("Claude no está disponible. Conservamos el mensaje original.");
+    } finally {
+      setIsGenerating(false);
+    }
+  }
+
+  function restoreOriginalMessage() {
+    setMessage(buildDonorMessage(donor));
+    setMessageSource("template");
+    setAiWarning("");
   }
 
   return (
@@ -133,6 +194,32 @@ export function DonorDetail({ donor: initialDonor }: { donor: Donor }) {
               <CardDescription>Revisalo y editá el tono antes de abrir WhatsApp. Nunca se envía automáticamente.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <span className="inline-flex items-center gap-1.5 text-xs font-medium text-primary">
+                  {messageSource === "claude" ? <Sparkles className="size-3.5" /> : <ShieldCheck className="size-3.5" />}
+                  {messageSource === "claude" ? "Borrador generado con Claude" : "Template seguro"}
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  <Button type="button" size="sm" variant="outline" onClick={generateMessage} disabled={isGenerating}>
+                    {isGenerating ? <LoaderCircle className="animate-spin" /> : <Sparkles />}
+                    {isGenerating ? "Claude está redactando" : "Generar con Claude"}
+                  </Button>
+                  <Button type="button" size="sm" variant="ghost" onClick={restoreOriginalMessage}>
+                    <RotateCcw />
+                    Volver al mensaje original
+                  </Button>
+                </div>
+              </div>
+              {aiWarning && (
+                <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                  {aiWarning}
+                </p>
+              )}
+              {copyError && (
+                <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                  {copyError}
+                </p>
+              )}
               <Textarea
                 value={message}
                 onChange={(event) => setMessage(event.target.value)}
@@ -220,4 +307,20 @@ function formatDate(date: string) {
   return new Intl.DateTimeFormat("es-AR", { day: "numeric", month: "long", year: "numeric" }).format(
     new Date(`${date}T12:00:00`),
   );
+}
+
+function copyWithDocumentFallback(message: string) {
+  const textarea = document.createElement("textarea");
+  textarea.value = message;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.opacity = "0";
+  document.body.appendChild(textarea);
+  textarea.select();
+  const copied = document.execCommand("copy");
+  document.body.removeChild(textarea);
+
+  if (!copied) {
+    throw new Error("Copy command was rejected.");
+  }
 }
