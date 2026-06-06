@@ -51,7 +51,7 @@ function parseDonors(value: string | null) {
 
   try {
     const parsed: unknown = JSON.parse(value);
-    return Array.isArray(parsed) && parsed.length === donorsSeed.length && parsed.every(isDonor) ? parsed : null;
+    return Array.isArray(parsed) && parsed.length > 0 && parsed.every(isDonor) ? parsed : null;
   } catch {
     return null;
   }
@@ -117,6 +117,15 @@ export function updateDonorStatus(id: string, status: FollowUpStatus) {
   }
 
   publish(donors.map((donor) => (donor.id === id ? { ...donor, followUpStatus: status } : donor)));
+  return true;
+}
+
+export function loadDonors(donors: Donor[]) {
+  if (donors.length === 0) {
+    return false;
+  }
+
+  publish(donors.map((donor) => ({ ...donor })));
   return true;
 }
 

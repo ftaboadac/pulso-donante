@@ -32,10 +32,32 @@ import type { Donor, FollowUpStatus } from "@/types/donor";
 
 const followUpOptions = Object.entries(followUpStatusLabels) as [FollowUpStatus, string][];
 
-export function DonorDetail({ donor: initialDonor }: { donor: Donor }) {
-  const { getDonor, updateDonorStatus } = useDonors();
-  const donor = getDonor(initialDonor.id) ?? initialDonor;
-  const [message, setMessage] = useState(() => buildDonorMessage(initialDonor));
+export function DonorDetail({ donorId, initialDonor }: { donorId: string; initialDonor: Donor | null }) {
+  const { getDonor, isHydrated } = useDonors();
+  const donor = getDonor(donorId) ?? initialDonor;
+
+  if (!donor) {
+    return (
+      <div className="space-y-6">
+        <Button asChild variant="ghost" className="-ml-3">
+          <Link href="/dashboard">
+            <ArrowLeft />
+            Volver a la cola
+          </Link>
+        </Button>
+        <div className="rounded-xl border bg-card p-8 text-center text-sm text-muted-foreground">
+          {isHydrated ? "No encontramos este donante en la base cargada." : "Cargando donante…"}
+        </div>
+      </div>
+    );
+  }
+
+  return <DonorDetailContent key={donor.id} donor={donor} />;
+}
+
+function DonorDetailContent({ donor }: { donor: Donor }) {
+  const { updateDonorStatus } = useDonors();
+  const [message, setMessage] = useState(() => buildDonorMessage(donor));
   const [copied, setCopied] = useState(false);
 
   const risk = getDonorRisk(donor);

@@ -5,6 +5,7 @@ import { useCallback, useSyncExternalStore } from "react";
 import {
   getDonorsServerSnapshot,
   getDonorsSnapshot,
+  loadDonors,
   resetDonors,
   subscribeToDonors,
   updateDonorStatus,
@@ -21,6 +22,7 @@ export function useDonors() {
     donors,
     getDonor,
     updateDonorStatus,
+    loadDonors,
     resetDonors,
     isHydrated,
   };

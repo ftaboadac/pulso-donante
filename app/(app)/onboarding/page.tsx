@@ -1,5 +1,5 @@
-import { OnboardingDemo } from "@/components/onboarding-demo";
+import { OnboardingImporter } from "@/components/onboarding-importer";
 
 export default function OnboardingPage() {
-  return <OnboardingDemo />;
+  return <OnboardingImporter />;
 }
