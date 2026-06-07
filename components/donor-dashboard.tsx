@@ -2,12 +2,13 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Download } from "lucide-react";
 
 import { DonorTable } from "@/components/DonorTable";
-import { Logo } from "@/components/logo";
 import { MetricCard } from "@/components/MetricCard";
 import { Button } from "@/components/ui/button";
 import { useDonors } from "@/hooks/use-donors";
+import { exportDonorsForImport } from "@/lib/donor-export";
 import {
   formatCurrency,
   getDashboardMetrics,
@@ -42,9 +43,15 @@ export function DonorDashboard() {
   return (
     <div className="space-y-8">
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-4">
-        <Logo />
-        <div className="flex items-center gap-4">
-          <span className="hidden text-sm text-muted-foreground sm:block">donantes.xlsx</span>
+        <div>
+          <p className="text-sm font-medium text-foreground">Base actual</p>
+          <p className="text-sm text-muted-foreground">donantes.xlsx</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => exportDonorsForImport(sortedDonors)}>
+            <Download />
+            Exportar Excel
+          </Button>
           <Button variant="ghost" size="sm" onClick={restartDemo}>
             Reiniciar demo
           </Button>

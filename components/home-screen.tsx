@@ -38,7 +38,6 @@ export function HomeScreen() {
             </p>
             <div className="flex flex-wrap items-center gap-3">
               <DemoStartButton />
-              <span className="text-sm text-muted-foreground">Sin registro · Sin formularios</span>
             </div>
           </div>
 

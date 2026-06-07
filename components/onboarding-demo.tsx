@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { type ChangeEvent, type ReactNode, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Check, LoaderCircle, Sparkles } from "lucide-react";
+import { ArrowRight, Check, Download, FileSpreadsheet, LoaderCircle, Sparkles, Upload } from "lucide-react";
 
-import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { buildFallbackMapping, defaultStatusValues } from "@/lib/ai-mapping";
+import { exportExampleSpreadsheet } from "@/lib/donor-export";
 import { donorsSeed, formatCurrency } from "@/lib/donors";
 import {
   onboardingFields,
@@ -51,7 +51,7 @@ const previewRows = donorsSeed.slice(0, 5).map((donor, index) => ({
   status: previewStatuses[index],
   lastPayment: formatShortDate(donor.lastPaymentDate),
   lastContact: formatShortDate(donor.lastImpactContactDate),
-  program: donor.cause,
+  impactArea: donor.cause,
 }));
 
 const initialSuggestion = buildFallbackMapping(columns, defaultStatusValues);
@@ -59,43 +59,13 @@ let mappingRequest: Promise<SuggestMappingResponse> | null = null;
 
 export function OnboardingDemo() {
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const analysisRunRef = useRef(0);
   const [suggestion, setSuggestion] = useState(initialSuggestion);
-  const [isAnalyzing, setIsAnalyzing] = useState(true);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [hasStartedAnalysis, setHasStartedAnalysis] = useState(false);
   const [validationError, setValidationError] = useState("");
-
-  useEffect(() => {
-    let isMounted = true;
-    const cached = readCachedSuggestion();
-
-    if (cached) {
-      queueMicrotask(() => {
-        if (!isMounted) {
-          return;
-        }
-
-        setSuggestion(cached);
-        setIsAnalyzing(false);
-      });
-
-      return () => {
-        isMounted = false;
-      };
-    }
-
-    void getMappingSuggestion({ columns, sampleRows }).then((result) => {
-      if (!isMounted) {
-        return;
-      }
-
-      sessionStorage.setItem(SUGGESTION_CACHE_KEY, JSON.stringify(result));
-      setSuggestion(result);
-      setIsAnalyzing(false);
-    });
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+  const [uploadedSpreadsheetName, setUploadedSpreadsheetName] = useState("");
 
   const mappingEntries = onboardingFields.map((field) => [field, suggestion.mappings[field]] as const);
 
@@ -146,190 +116,295 @@ export function OnboardingDemo() {
     router.push("/dashboard");
   }
 
+  function downloadExampleSpreadsheet() {
+    exportExampleSpreadsheet(donorsSeed);
+  }
+
+  function openSpreadsheetPicker() {
+    fileInputRef.current?.click();
+  }
+
+  function registerSpreadsheetUpload(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    event.target.value = "";
+    void analyzeSpreadsheet(file.name);
+  }
+
+  async function analyzeSpreadsheet(fileName: string) {
+    const currentRun = analysisRunRef.current + 1;
+    analysisRunRef.current = currentRun;
+
+    setUploadedSpreadsheetName(fileName);
+    setHasStartedAnalysis(true);
+    setIsAnalyzing(true);
+    setValidationError("");
+
+    const cached = readCachedSuggestion();
+    const suggestionPromise = cached
+      ? Promise.resolve(cached)
+      : getMappingSuggestion({ columns, sampleRows }).then((result) => {
+          sessionStorage.setItem(SUGGESTION_CACHE_KEY, JSON.stringify(result));
+          return result;
+        });
+
+    const [result] = await Promise.all([suggestionPromise, wait(1200)]);
+
+    if (analysisRunRef.current !== currentRun) {
+      return;
+    }
+
+    setSuggestion(result);
+    setIsAnalyzing(false);
+  }
+
+  const spreadsheetFileLabel = uploadedSpreadsheetName
+    ? `${uploadedSpreadsheetName} · muestra cargada`
+    : "Esperando archivo de ejemplo";
+
   return (
     <div className="space-y-8">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <Logo />
+        <div>
+          <p className="text-sm font-medium text-foreground">Planilla demo</p>
+          <p className="text-sm text-muted-foreground">{spreadsheetFileLabel}</p>
+        </div>
         <Button asChild variant="ghost" size="sm">
           <Link href="/">Volver</Link>
         </Button>
       </div>
 
       <div>
-        <span className="text-sm font-medium text-primary">Preparación de datos</span>
+        <span className="text-sm font-medium text-primary">Carga de datos</span>
         <h1 className="mt-2 text-3xl font-semibold tracking-tight text-foreground">
-          Revisá cómo interpretamos tu planilla
+          Subí la planilla de ejemplo para iniciar la demo
         </h1>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-          La IA sugiere qué columna corresponde a cada dato. Nada se aplica solo: vos confirmás o corregís antes de
-          detectar casos en riesgo.
+          Descargá el archivo, volvé a subirlo y Pulso va a analizar columnas y primeras filas antes de mostrarte el
+          mapeo sugerido. La persona de la ONG confirma todo antes de procesar.
         </p>
       </div>
 
-      <section className="grid gap-3 md:grid-cols-3" aria-label="Cómo funciona el mapeo">
-        <ProcessStep
-          number="1"
-          title="Leemos la planilla"
-          description="Mostramos una muestra realista para que puedas reconocer los datos de origen."
-        />
-        <ProcessStep
-          number="2"
-          title="Sugerimos el mapeo"
-          description="La IA propone columnas y estados; las heurísticas locales cubren el fallback."
-        />
-        <ProcessStep
-          number="3"
-          title="Vos confirmás"
-          description="Recién después aplicamos reglas determinísticas para priorizar donantes."
-        />
-      </section>
-
-      <section className="overflow-hidden rounded-xl border border-border bg-card">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-5 py-3">
-          <h2 className="text-sm font-semibold text-foreground">Vista previa de la planilla</h2>
-          <span className="text-xs text-muted-foreground">donantes.xlsx · 10 filas</span>
+      <section className="grid gap-4 rounded-2xl border border-primary/20 bg-primary/5 p-4 md:grid-cols-[1fr_auto] md:items-center">
+        <div className="flex items-center gap-3">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-background text-primary shadow-sm">
+            <FileSpreadsheet className="size-5" aria-hidden="true" />
+          </div>
+          <div className="min-w-0">
+            <h2 className="text-base font-semibold text-foreground">Planilla de Fundación Puente</h2>
+            {uploadedSpreadsheetName ? (
+              <p className="mt-1 inline-flex max-w-full items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+                <Check className="size-3.5" aria-hidden="true" />
+                <span className="truncate">Archivo cargado: {uploadedSpreadsheetName}</span>
+              </p>
+            ) : null}
+          </div>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[980px] border-collapse text-sm">
-            <thead>
-              <tr className="bg-secondary">
-                {columns.map((column) => (
-                  <th
-                    key={column}
-                    className="whitespace-nowrap px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground"
-                  >
-                    {column}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {previewRows.map((row) => (
-                <tr key={row.donor} className="border-t border-border hover:bg-secondary/50">
-                  <td className="whitespace-nowrap px-4 py-2.5 font-medium text-foreground">{row.donor}</td>
-                  <td className="whitespace-nowrap px-4 py-2.5 text-muted-foreground">{row.phone}</td>
-                  <td className="whitespace-nowrap px-4 py-2.5 text-foreground">{row.amount}</td>
-                  <td className="whitespace-nowrap px-4 py-2.5 text-muted-foreground">{row.status}</td>
-                  <td className="whitespace-nowrap px-4 py-2.5 text-muted-foreground">{row.lastPayment}</td>
-                  <td className="whitespace-nowrap px-4 py-2.5 text-muted-foreground">{row.lastContact}</td>
-                  <td className="whitespace-nowrap px-4 py-2.5 text-muted-foreground">{row.program}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="flex flex-wrap gap-2 md:justify-end">
+          <Button type="button" variant="outline" onClick={downloadExampleSpreadsheet}>
+            <Download className="size-4" aria-hidden="true" />
+            Descargar Excel de ejemplo
+          </Button>
+          <Button type="button" onClick={openSpreadsheetPicker}>
+            <Upload className="size-4" aria-hidden="true" />
+            Subir CSV/Excel
+          </Button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            className="sr-only"
+            accept=".csv,.xls,.xlsx,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            onChange={registerSpreadsheetUpload}
+          />
         </div>
       </section>
 
-      <div className="flex items-center gap-2 text-sm">
-        {isAnalyzing ? (
-          <>
-            <LoaderCircle className="size-4 animate-spin text-primary" aria-hidden="true" />
-            <span className="font-medium text-primary">La IA está analizando</span>
-          </>
-        ) : suggestion.source === "claude" ? (
-          <>
-            <Sparkles className="size-4 text-primary" aria-hidden="true" />
-            <span className="font-medium text-primary">Sugerido por IA</span>
-          </>
-        ) : (
-          <>
-            <Check className="size-4 text-primary" aria-hidden="true" />
-            <span className="font-medium text-primary">Sugerencia local</span>
-          </>
-        )}
-        <span className="text-muted-foreground">· Revisá cada selección antes de continuar</span>
-      </div>
-
-      {suggestion.warning && !isAnalyzing && (
-        <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          {suggestion.warning}
-        </p>
+      {isAnalyzing && (
+        <section
+          className="rounded-2xl border border-border bg-card p-6 shadow-sm"
+          aria-label="Análisis de la planilla"
+          aria-live="polite"
+        >
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <LoaderCircle className="size-5 animate-spin" aria-hidden="true" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-primary">Claude está analizando {uploadedSpreadsheetName}</p>
+              <h2 className="mt-1 text-xl font-semibold tracking-tight text-foreground">
+                Leyendo columnas y valores de ejemplo
+              </h2>
+              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+                Detectamos encabezados como Donante, Celular, Aporte actual y Estado último cobro. En unos segundos vas
+                a poder revisar el mapeo sugerido antes de continuar.
+              </p>
+              <div className="mt-4 grid gap-2 text-sm text-muted-foreground sm:grid-cols-3">
+                <span className="rounded-lg bg-secondary px-3 py-2">Validando columnas</span>
+                <span className="rounded-lg bg-secondary px-3 py-2">Interpretando estados</span>
+                <span className="rounded-lg bg-secondary px-3 py-2">Preparando sugerencia</span>
+              </div>
+            </div>
+          </div>
+        </section>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <MappingCard
-          title="Mapeo de columnas"
-          description="Izquierda: dato que necesita Pulso Donante. Derecha: columna de tu planilla."
-        >
-          {mappingEntries.map(([field, selectedColumn]) => (
-            <li
-              key={field}
-              className="grid gap-2 rounded-lg border border-border bg-secondary/30 px-3 py-3 sm:grid-cols-[1fr_auto_1.2fr] sm:items-center"
-            >
-              <span className="text-sm font-medium text-foreground">{onboardingFieldLabels[field]}</span>
-              <ArrowRight className="hidden size-4 text-primary sm:block" aria-hidden="true" />
-              <select
-                value={selectedColumn}
-                onChange={(event) => updateMapping(field, event.target.value)}
-                disabled={isAnalyzing}
-                aria-label={`Columna para ${onboardingFieldLabels[field]}`}
-                className="h-9 min-w-0 rounded-md border border-input bg-background px-2 text-sm outline-none focus:border-ring focus:ring-3 focus:ring-ring/20 disabled:opacity-60"
-              >
-                <option value="">Elegir columna</option>
-                {columns.map((column) => (
-                  <option key={column} value={column}>
-                    {column}
-                  </option>
-                ))}
-              </select>
-            </li>
-          ))}
-        </MappingCard>
+      {hasStartedAnalysis && !isAnalyzing && (
+        <>
+          <section className="grid gap-3 md:grid-cols-3" aria-label="Cómo funciona el mapeo">
+            <ProcessStep
+              number="1"
+              title="Leemos la planilla"
+              description="Mostramos una muestra realista para que puedas reconocer los datos de origen."
+            />
+            <ProcessStep
+              number="2"
+              title="Sugerimos el mapeo"
+              description="La IA propone columnas y estados; las heurísticas locales cubren el fallback."
+            />
+            <ProcessStep
+              number="3"
+              title="Vos confirmás"
+              description="Recién después aplicamos reglas determinísticas para priorizar donantes."
+            />
+          </section>
 
-        <MappingCard
-          title="Estados de pago"
-          description="Cuando la planilla dice esto, Pulso lo interpreta como este estado."
-        >
-          {Object.entries(suggestion.normalizations).map(([sourceValue, status]) => (
-            <li
-              key={sourceValue}
-              className="grid gap-2 rounded-lg border border-border bg-secondary/30 px-3 py-3 sm:grid-cols-[1fr_auto_1.2fr] sm:items-center"
-            >
-              <span className="text-sm font-medium text-foreground">{sourceValue}</span>
-              <ArrowRight className="hidden size-4 text-primary sm:block" aria-hidden="true" />
-              <select
-                value={status}
-                onChange={(event) => updateNormalization(sourceValue, event.target.value as PaymentStatus)}
-                disabled={isAnalyzing}
-                aria-label={`Estado para ${sourceValue}`}
-                className="h-9 min-w-0 rounded-md border border-input bg-background px-2 text-sm outline-none focus:border-ring focus:ring-3 focus:ring-ring/20 disabled:opacity-60"
-              >
-                {Object.entries(paymentStatusMappingLabels).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-            </li>
-          ))}
-        </MappingCard>
-      </div>
+          <section className="overflow-hidden rounded-xl border border-border bg-card">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-5 py-3">
+              <h2 className="text-sm font-semibold text-foreground">Vista previa de la planilla</h2>
+              <span className="text-xs text-muted-foreground">{spreadsheetFileLabel}</span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[980px] border-collapse text-sm">
+                <thead>
+                  <tr className="bg-secondary">
+                    {columns.map((column) => (
+                      <th
+                        key={column}
+                        className="whitespace-nowrap px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground"
+                      >
+                        {column}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {previewRows.map((row) => (
+                    <tr key={row.donor} className="border-t border-border hover:bg-secondary/50">
+                      <td className="whitespace-nowrap px-4 py-2.5 font-medium text-foreground">{row.donor}</td>
+                      <td className="whitespace-nowrap px-4 py-2.5 text-muted-foreground">{row.phone}</td>
+                      <td className="whitespace-nowrap px-4 py-2.5 text-foreground">{row.amount}</td>
+                      <td className="whitespace-nowrap px-4 py-2.5 text-muted-foreground">{row.status}</td>
+                      <td className="whitespace-nowrap px-4 py-2.5 text-muted-foreground">{row.lastPayment}</td>
+                      <td className="whitespace-nowrap px-4 py-2.5 text-muted-foreground">{row.lastContact}</td>
+                      <td className="whitespace-nowrap px-4 py-2.5 text-muted-foreground">{row.impactArea}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
 
-      <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-border bg-card p-5">
-        <div>
-          <p className="text-sm text-muted-foreground">
-            Todo listo. Se analizarán 10 donantes con reglas transparentes y auditables.
-          </p>
-          {validationError && <p className="mt-2 text-sm font-medium text-destructive">{validationError}</p>}
-        </div>
-        <Button size="lg" onClick={confirmMapping} disabled={isAnalyzing}>
-          Detectar donantes en riesgo
-          <ArrowRight />
-        </Button>
-      </div>
+          <div className="flex items-center gap-2 text-sm">
+            {suggestion.source === "claude" ? (
+              <>
+                <Sparkles className="size-4 text-primary" aria-hidden="true" />
+                <span className="font-medium text-primary">Sugerido por IA</span>
+              </>
+            ) : (
+              <>
+                <Check className="size-4 text-primary" aria-hidden="true" />
+                <span className="font-medium text-primary">Sugerencia local</span>
+              </>
+            )}
+            <span className="text-muted-foreground">· Revisá cada selección antes de continuar</span>
+          </div>
+
+          {suggestion.warning && (
+            <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              {suggestion.warning}
+            </p>
+          )}
+
+          <div className="grid gap-6 lg:grid-cols-2">
+            <MappingCard
+              title="Mapeo de columnas"
+              description="Izquierda: dato que necesita Pulso Donante. Derecha: columna de tu planilla."
+            >
+              {mappingEntries.map(([field, selectedColumn]) => (
+                <li
+                  key={field}
+                  className="grid gap-2 rounded-lg border border-border bg-secondary/30 px-3 py-3 sm:grid-cols-[1fr_auto_1.2fr] sm:items-center"
+                >
+                  <span className="text-sm font-medium text-foreground">{onboardingFieldLabels[field]}</span>
+                  <ArrowRight className="hidden size-4 text-primary sm:block" aria-hidden="true" />
+                  <select
+                    value={selectedColumn}
+                    onChange={(event) => updateMapping(field, event.target.value)}
+                    aria-label={`Columna para ${onboardingFieldLabels[field]}`}
+                    className="h-9 min-w-0 rounded-md border border-input bg-background px-2 text-sm outline-none focus:border-ring focus:ring-3 focus:ring-ring/20"
+                  >
+                    <option value="">Elegir columna</option>
+                    {columns.map((column) => (
+                      <option key={column} value={column}>
+                        {column}
+                      </option>
+                    ))}
+                  </select>
+                </li>
+              ))}
+            </MappingCard>
+
+            <MappingCard
+              title="Estados de pago"
+              description="Cuando la planilla dice esto, Pulso lo interpreta como este estado."
+            >
+              {Object.entries(suggestion.normalizations).map(([sourceValue, status]) => (
+                <li
+                  key={sourceValue}
+                  className="grid gap-2 rounded-lg border border-border bg-secondary/30 px-3 py-3 sm:grid-cols-[1fr_auto_1.2fr] sm:items-center"
+                >
+                  <span className="text-sm font-medium text-foreground">{sourceValue}</span>
+                  <ArrowRight className="hidden size-4 text-primary sm:block" aria-hidden="true" />
+                  <select
+                    value={status}
+                    onChange={(event) => updateNormalization(sourceValue, event.target.value as PaymentStatus)}
+                    aria-label={`Estado para ${sourceValue}`}
+                    className="h-9 min-w-0 rounded-md border border-input bg-background px-2 text-sm outline-none focus:border-ring focus:ring-3 focus:ring-ring/20"
+                  >
+                    {Object.entries(paymentStatusMappingLabels).map(([value, label]) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                </li>
+              ))}
+            </MappingCard>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-border bg-card p-5">
+            <div>
+              <p className="text-sm text-muted-foreground">
+                Todo listo. Se analizarán 10 donantes con reglas transparentes y auditables.
+              </p>
+              {validationError && <p className="mt-2 text-sm font-medium text-destructive">{validationError}</p>}
+            </div>
+            <Button size="lg" onClick={confirmMapping}>
+              Detectar donantes en riesgo
+              <ArrowRight />
+            </Button>
+          </div>
+        </>
+      )}
     </div>
   );
 }
 
-function MappingCard({
-  title,
-  description,
-  children,
-}: {
-  title: string;
-  description: string;
-  children: React.ReactNode;
-}) {
+function MappingCard({ title, description, children }: { title: string; description: string; children: ReactNode }) {
   return (
     <section className="rounded-xl border border-border bg-card p-5">
       <h2 className="text-sm font-semibold text-foreground">{title}</h2>
@@ -376,6 +451,10 @@ function readCachedSuggestion() {
     sessionStorage.removeItem(SUGGESTION_CACHE_KEY);
     return null;
   }
+}
+
+function wait(ms: number) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
 }
 
 function formatPhone(phone: string) {
