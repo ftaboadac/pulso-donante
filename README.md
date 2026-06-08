@@ -4,6 +4,10 @@ Pulso Donante convierte una planilla de donantes en una cola priorizada de accio
 
 > Pulso Donante no reemplaza el vínculo humano. Automatiza la detección, priorización y preparación; una persona revisa, decide y envía.
 
+## Contexto
+
+Este proyecto nació como MVP para una hackathon orientada a organizaciones sociales. El objetivo fue prototipar, en poco tiempo, una herramienta simple para que una ONG pueda detectar donantes en riesgo, priorizar seguimientos y preparar mensajes de contacto sin automatizar conversaciones sensibles.
+
 ## Problema
 
 Muchas ONGs gestionan sus donantes entre Excel, correo y WhatsApp. Los pagos fallidos, montos desactualizados y seguimientos pendientes se detectan tarde, por lo que parte de las bajas ocurre de forma pasiva y evitable.
@@ -13,18 +17,6 @@ El MVP responde dos preguntas:
 1. ¿Cuánto ingreso está por perder la organización?
 2. ¿Qué casos debería atender hoy?
 
-## Flujo del MVP
-
-1. La persona inicia una demo sin login.
-2. Revisa una planilla precargada.
-3. Confirma el mapeo de columnas y la normalización de estados.
-4. Ve métricas y una cola de donantes ordenada por prioridad.
-5. Abre el detalle de un donante y entiende el motivo del riesgo.
-6. Revisa y edita un mensaje sugerido.
-7. Abre WhatsApp mediante un enlace `wa.me` o copia el mensaje.
-8. Registra el resultado del contacto.
-9. El dashboard recalcula el ingreso recuperado.
-
 ## Rutas
 
 | Ruta | Propósito |
@@ -33,18 +25,6 @@ El MVP responde dos preguntas:
 | `/onboarding` | Vista previa, mapeo y normalización de la planilla |
 | `/dashboard` | Métricas y cola priorizada de donantes |
 | `/donor/[id]` | Diagnóstico, mensaje, WhatsApp y seguimiento |
-
-## Datos de la demo
-
-La base incluye 10 donantes:
-
-- 4 pagos rechazados prioritarios.
-- `$34.500` mensuales en riesgo crítico.
-- `$414.000` anualizados en riesgo crítico.
-- 3 casos adicionales de seguimiento.
-- `$0` recuperados al iniciar.
-
-El caso principal es María Gómez, con un aporte de `$5.000` mensuales. Al marcarla como recuperada, el dashboard debe mostrar `$5.000` mensuales y `$60.000` anualizados preservados.
 
 ## Contrato de datos
 
@@ -144,83 +124,3 @@ La automatización completa queda como una evolución futura únicamente para me
 - Vercel como destino de despliegue
 
 El loop principal no necesita base de datos, autenticación ni variables de entorno. Las funciones de Claude requieren `ANTHROPIC_API_KEY`, pero tienen fallback local y nunca bloquean la demo.
-
-## Desarrollo local
-
-```bash
-npm install
-npm run dev
-```
-
-Abrir [http://localhost:3000](http://localhost:3000).
-
-Para habilitar Claude, crear `.env.local` a partir de `.env.example`:
-
-```bash
-ANTHROPIC_API_KEY=...
-ANTHROPIC_MODEL=claude-sonnet-4-6
-```
-
-La clave es exclusiva del servidor. Nunca debe usar el prefijo `NEXT_PUBLIC_`, incluirse en el repositorio ni pedirse a una ONG.
-
-Antes de entregar:
-
-```bash
-npm run lint
-npm run build
-```
-
-## Estructura relevante
-
-```text
-app/
-  api/ai/                    Sugerencias de mapeo y mensajes
-  page.tsx                    Home
-  (app)/onboarding/page.tsx  Demo de planilla
-  (app)/dashboard/page.tsx   Métricas y tabla
-  (app)/donor/[id]/page.tsx  Detalle del donante
-components/
-  donor-dashboard.tsx
-  donor-detail.tsx
-  onboarding-demo.tsx
-hooks/
-  use-donors.ts              Estado y persistencia local
-lib/
-  anthropic.ts               Cliente server-only y modelo
-  donors.ts                  Seed, reglas, métricas y mensajes
-types/
-  ai.ts                      Contratos validados de IA
-  donor.ts                   Contrato de datos
-```
-
-## Fuera de alcance
-
-- Envío automático de mensajes.
-- WhatsApp Business API, Twilio o bots.
-- Cobros reales o actualización de tarjeta/CBU.
-- Almacenamiento de datos financieros sensibles.
-- CRM completo, roles, permisos o soporte multi-ONG.
-- Importador universal de cualquier Excel.
-- Chatbot autónomo o IA tomando decisiones.
-- Aplicación automática de mapeos sugeridos por IA.
-- Envío automático de mensajes generados por IA.
-- Aplicación móvil nativa.
-
-## Definition of Done
-
-- El enlace abre sin login y permite recorrer la demo.
-- El onboarding muestra mapeo y normalización.
-- El onboarding permite corregir y confirmar la sugerencia de Claude o del fallback.
-- El dashboard separa pagos rechazados de otros seguimientos.
-- Existe al menos un pago rechazado y un monto desactualizado.
-- El mensaje incluye nombre, motivo, impacto y una acción concreta.
-- Claude solo reemplaza el mensaje cuando devuelve un borrador válido y seguro.
-- El botón de WhatsApp abre `wa.me` con texto precargado.
-- Copiar mensaje funciona como alternativa.
-- Marcar un caso como recuperado actualiza las métricas.
-- La experiencia funciona en celular y navegador incógnito.
-- No se solicitan ni almacenan datos financieros sensibles.
-
-## Principio de alcance
-
-Si una funcionalidad no ayuda a recuperar un donante durante la demo, no bloquea el MVP. Si el flujo no se entiende al abrir el enlace en menos de 60 segundos, debe simplificarse.

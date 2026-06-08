@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, CircleDollarSign } from "lucide-react";
 
 import { RiskBadge } from "@/components/RiskBadge";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -16,28 +16,42 @@ export function DonorTable({
   description: string;
 }) {
   return (
-    <section className="overflow-hidden rounded-xl border border-border bg-card">
-      <div className="border-b border-border px-4 py-4 sm:px-5">
-        <h2 className="text-base font-semibold text-foreground">{title}</h2>
-        <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+    <section className="surface-panel overflow-hidden rounded-lg">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-card px-4 py-4 sm:px-5">
+        <div>
+          <h2 className="text-base font-semibold text-foreground">{title}</h2>
+          <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+        </div>
+        <div className="rounded-lg bg-secondary px-3 py-2 text-sm font-semibold text-foreground action-ring">
+          {donors.length} casos
+        </div>
       </div>
       <div className="divide-y divide-border md:hidden">
         {donors.map((donor) => {
           const risk = getDonorRisk(donor);
 
           return (
-            <Link key={donor.id} href={`/donor/${donor.id}`} className="block p-4 transition-colors hover:bg-secondary/40">
+            <Link
+              key={donor.id}
+              href={`/donor/${donor.id}`}
+              className="block bg-card p-4 transition-colors hover:bg-secondary/60"
+            >
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="font-semibold text-foreground">{donor.name}</p>
                   <p className="mt-1 text-xs text-muted-foreground">{formatPhone(donor.phone)}</p>
                 </div>
-                <ArrowRight className="mt-1 size-4 shrink-0 text-muted-foreground" />
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-secondary text-primary">
+                  <ArrowRight className="size-4" />
+                </span>
               </div>
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 <RiskBadge donor={donor} />
                 <StatusBadge status={donor.followUpStatus} />
-                <span className="text-sm font-semibold text-foreground">{formatCurrency(donor.monthlyAmount)}</span>
+                <span className="inline-flex items-center gap-1 text-sm font-semibold text-foreground">
+                  <CircleDollarSign className="size-4 text-primary" />
+                  {formatCurrency(donor.monthlyAmount)}
+                </span>
               </div>
               <ReasonList reasons={risk.reasons} className="mt-3" />
             </Link>
@@ -54,7 +68,7 @@ export function DonorTable({
               {["Donante", "Aporte mensual", "Riesgo", "Motivo", "Seguimiento"].map((column) => (
                 <th
                   key={column}
-                  className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold text-muted-foreground"
+                  className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground"
                 >
                   {column}
                 </th>
@@ -66,8 +80,8 @@ export function DonorTable({
               const risk = getDonorRisk(donor);
 
               return (
-                <tr key={donor.id} className="border-t border-border hover:bg-secondary/40">
-                  <td className="whitespace-nowrap px-4 py-3">
+                <tr key={donor.id} className="border-t border-border bg-card transition-colors hover:bg-secondary/50">
+                  <td className="whitespace-nowrap px-4 py-4">
                     <Link
                       href={`/donor/${donor.id}`}
                       className="group inline-flex items-center gap-2 font-medium text-foreground underline-offset-4 hover:text-primary hover:underline"
@@ -77,16 +91,16 @@ export function DonorTable({
                     </Link>
                     <p className="mt-1 text-xs text-muted-foreground">{formatPhone(donor.phone)}</p>
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3 font-medium text-foreground">
+                  <td className="whitespace-nowrap px-4 py-4 font-semibold text-foreground">
                     {formatCurrency(donor.monthlyAmount)}
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3">
+                  <td className="whitespace-nowrap px-4 py-4">
                     <RiskBadge donor={donor} />
                   </td>
-                  <td className="max-w-md px-4 py-3 text-muted-foreground">
+                  <td className="max-w-md px-4 py-4 text-muted-foreground">
                     <ReasonList reasons={risk.reasons} />
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3">
+                  <td className="whitespace-nowrap px-4 py-4">
                     <StatusBadge status={donor.followUpStatus} />
                   </td>
                 </tr>

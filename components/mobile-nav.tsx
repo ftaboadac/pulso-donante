@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FileSpreadsheet, HeartPulse, Home, LayoutDashboard, Menu } from "lucide-react";
+import { FileSpreadsheet, HeartHandshake, Home, LayoutDashboard, Menu } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -21,9 +21,11 @@ const navItems = [
 
 export function MobileNav() {
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b bg-background/95 px-4 backdrop-blur lg:hidden">
+    <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-border bg-card/90 px-4 backdrop-blur lg:hidden">
       <Link href="/" className="flex items-center gap-2 font-semibold text-primary">
-        <HeartPulse className="size-5" />
+        <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+          <HeartHandshake className="size-4" />
+        </span>
         Pulso Donante
       </Link>
       <Sheet>
@@ -42,7 +44,7 @@ export function MobileNav() {
               <Link
                 key={item.href}
                 href={item.href}
-                className="flex items-center gap-3 rounded-md px-3 py-2 text-sm hover:bg-accent"
+                className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium hover:bg-accent"
               >
                 <item.icon className="size-4" />
                 {item.label}

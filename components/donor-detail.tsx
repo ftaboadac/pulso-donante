@@ -114,7 +114,7 @@ export function DonorDetail({ donor: initialDonor }: { donor: Donor }) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <Button asChild variant="ghost" className="-ml-3">
         <Link href="/dashboard">
           <ArrowLeft />
@@ -122,19 +122,43 @@ export function DonorDetail({ donor: initialDonor }: { donor: Donor }) {
         </Link>
       </Button>
 
-      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
-        <div>
-          <p className="text-sm font-medium text-primary">Caso de retención</p>
-          <h1 className="mt-3 text-3xl font-semibold tracking-tight">{donor.name}</h1>
-          <p className="mt-2 text-muted-foreground">
-            Revisá el diagnóstico, ajustá el mensaje y registrá el resultado del contacto.
-          </p>
+      <section className="surface-panel overflow-hidden rounded-lg">
+        <div className="grid lg:grid-cols-[1fr_360px]">
+          <div className="warm-hero p-5 text-white sm:p-7">
+            <p className="text-xs font-medium uppercase tracking-[0.18em] text-white/60">Caso de cuidado</p>
+            <div className="mt-4 flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">{donor.name}</h1>
+                <p className="mt-3 max-w-2xl text-sm leading-6 text-white/68">
+                  Revisá el diagnóstico, ajustá el mensaje y registrá el resultado del contacto.
+                </p>
+              </div>
+              <div className="rounded-lg bg-white/[0.10] px-4 py-3 ring-1 ring-white/12 backdrop-blur">
+                <p className="text-xs text-white/58">Severidad</p>
+                <p className="mt-1 text-lg font-semibold">
+                  {risk.level === "critical" ? "Crítica" : risk.level === "follow_up" ? "Seguimiento" : "Al día"}
+                </p>
+              </div>
+            </div>
+            <div className="mt-6 grid gap-3 sm:grid-cols-3">
+              <CaseStat label="Aporte mensual" value={formatCurrency(donor.monthlyAmount)} />
+              <CaseStat label="Riesgo anual" value={formatCurrency(annualAmount)} />
+              <CaseStat label="Causa" value={donor.cause} />
+            </div>
+          </div>
+          <div className="border-t border-border bg-card p-5 lg:border-l lg:border-t-0">
+            <p className="text-sm font-semibold text-foreground">Próxima acción recomendada</p>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              Abrí WhatsApp con el texto revisado y después registrá el resultado para recalcular el tablero.
+            </p>
+            <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-emerald-950 shadow-xs">
+              <p className="text-xs font-medium uppercase tracking-[0.12em]">Si se recupera</p>
+              <p className="mt-1 text-2xl font-semibold">{formatCurrency(donor.monthlyAmount)}</p>
+              <p className="text-sm">mensuales preservados</p>
+            </div>
+          </div>
         </div>
-        <div className="rounded-xl border bg-card px-5 py-4 shadow-xs">
-          <p className="text-sm text-muted-foreground">Aporte mensual</p>
-          <p className="mt-1 text-2xl font-semibold">{formatCurrency(donor.monthlyAmount)}</p>
-        </div>
-      </div>
+      </section>
 
       <section className="grid gap-6 xl:grid-cols-[0.85fr_1.15fr]">
         <div className="space-y-6">
@@ -147,10 +171,10 @@ export function DonorDetail({ donor: initialDonor }: { donor: Donor }) {
               {reasonCards.length > 0 ? (
                 <div className="space-y-3">
                   {reasonCards.map((item) => (
-                    <div key={item.title} className={`rounded-xl border p-4 ${item.cardClassName}`}>
+                    <div key={item.title} className={`rounded-lg border p-4 ${item.cardClassName}`}>
                       <div className="flex items-start gap-3">
                         <span
-                          className={`mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full shadow-xs ${item.iconClassName}`}
+                          className={`mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg shadow-xs ${item.iconClassName}`}
                         >
                           <item.icon className="size-4" />
                         </span>
@@ -168,11 +192,11 @@ export function DonorDetail({ donor: initialDonor }: { donor: Donor }) {
                 </p>
               )}
               <div className="grid grid-cols-2 gap-3 pt-2">
-                <div className="rounded-lg border p-3">
+                <div className="rounded-lg border bg-secondary/35 p-3">
                   <p className="text-xs text-muted-foreground">Riesgo mensual</p>
                   <p className="mt-1 font-semibold">{formatCurrency(donor.monthlyAmount)}</p>
                 </div>
-                <div className="rounded-lg border p-3">
+                <div className="rounded-lg border bg-secondary/35 p-3">
                   <p className="text-xs text-muted-foreground">Riesgo anual</p>
                   <p className="mt-1 font-semibold">{formatCurrency(annualAmount)}</p>
                 </div>
@@ -189,7 +213,7 @@ export function DonorDetail({ donor: initialDonor }: { donor: Donor }) {
               <DetailRow icon={WalletCards} label="Último cobro" value={paymentStatusLabels[donor.paymentStatus]} />
               <DetailRow icon={CalendarDays} label="Fecha del último pago" value={formatDate(donor.lastPaymentDate)} />
               <DetailRow icon={HeartHandshake} label="Último impacto" value={formatDate(donor.lastImpactContactDate)} />
-              <div className="rounded-lg bg-primary/5 p-4 text-primary">
+              <div className="rounded-lg border border-primary/15 bg-accent/70 p-4 text-accent-foreground">
                 <p className="text-xs font-medium uppercase tracking-wide">Impacto para contar</p>
                 <p className="mt-2 leading-6">{donor.impactText}.</p>
               </div>
@@ -199,14 +223,14 @@ export function DonorDetail({ donor: initialDonor }: { donor: Donor }) {
 
         <div>
           <Card className="overflow-hidden border-primary/20">
-            <CardHeader className="border-b border-border bg-primary/5">
+            <CardHeader className="warm-hero border-b border-white/10 text-white">
               <CardTitle>Contacto y seguimiento</CardTitle>
-              <CardDescription>
+              <CardDescription className="text-white/68">
                 Prepará el mensaje, contactá por WhatsApp y registrá qué pasó con el vínculo.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-5 pt-6">
-              <div className="rounded-xl border border-emerald-200 bg-emerald-50/80 p-4 text-sm text-emerald-950">
+              <div className="rounded-lg border border-emerald-200 bg-emerald-50/85 p-4 text-sm text-emerald-950">
                 <p className="font-semibold">Próxima acción recomendada</p>
                 <p className="mt-1 leading-6">
                   Abrí WhatsApp con el mensaje revisado y, después del contacto, registrá el resultado para actualizar
@@ -289,7 +313,7 @@ export function DonorDetail({ donor: initialDonor }: { donor: Donor }) {
                   <select
                     value={donor.followUpStatus}
                     onChange={(event) => updateDonorStatus(donor.id, event.target.value as FollowUpStatus)}
-                    className="h-11 rounded-md border border-input bg-background px-3 text-sm outline-none focus:border-ring focus:ring-3 focus:ring-ring/20"
+                    className="h-11 rounded-lg border border-input bg-card px-3 text-sm outline-none focus:border-ring focus:ring-3 focus:ring-ring/20"
                   >
                     {followUpOptions.map(([value, label]) => (
                       <option key={value} value={value}>
@@ -301,7 +325,7 @@ export function DonorDetail({ donor: initialDonor }: { donor: Donor }) {
                 <p className="text-xs leading-5 text-muted-foreground">{getFollowUpHint(donor.followUpStatus)}</p>
 
                 {donor.followUpStatus !== "recovered" ? (
-                  <div className="rounded-xl border border-emerald-200 bg-emerald-50/80 p-4">
+                  <div className="rounded-lg border border-emerald-200 bg-emerald-50/80 p-4">
                     <p className="text-sm font-semibold text-emerald-950">Si regularizó el aporte</p>
                     <p className="mt-1 text-sm leading-6 text-emerald-900">
                       Marcá recuperado para sumar {formatCurrency(donor.monthlyAmount)} mensuales y{" "}
@@ -316,7 +340,7 @@ export function DonorDetail({ donor: initialDonor }: { donor: Donor }) {
                     </Button>
                   </div>
                 ) : (
-                  <div className="rounded-xl bg-accent p-4 text-sm text-accent-foreground">
+                  <div className="rounded-lg bg-accent p-4 text-sm text-accent-foreground">
                     <p className="font-semibold">Aporte recuperado</p>
                     <p className="mt-1">
                       Sumaste {formatCurrency(donor.monthlyAmount)} mensuales y {formatCurrency(annualAmount)}{" "}
@@ -336,13 +360,22 @@ export function DonorDetail({ donor: initialDonor }: { donor: Donor }) {
 function DetailRow({ icon: Icon, label, value }: { icon: typeof Phone; label: string; value: string }) {
   return (
     <div className="flex items-center gap-3">
-      <span className="flex size-9 items-center justify-center rounded-lg bg-secondary text-primary">
+      <span className="flex size-9 items-center justify-center rounded-lg bg-accent text-primary">
         <Icon className="size-4" />
       </span>
       <div>
         <p className="text-xs text-muted-foreground">{label}</p>
         <p className="font-medium">{value}</p>
       </div>
+    </div>
+  );
+}
+
+function CaseStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-h-24 rounded-lg bg-white/[0.10] p-4 ring-1 ring-white/12">
+      <p className="text-xl font-semibold tracking-tight text-white">{value}</p>
+      <p className="mt-1 text-xs font-medium text-white/58">{label}</p>
     </div>
   );
 }
@@ -359,9 +392,9 @@ function WorkflowStep({
   children: ReactNode;
 }) {
   return (
-    <section className="rounded-xl border border-border bg-card p-4">
+    <section className="rounded-lg border border-border bg-card p-4 shadow-sm">
       <div className="flex items-start gap-3">
-        <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
+        <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary text-xs font-semibold text-primary-foreground">
           {number}
         </span>
         <div>

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronsLeft, ChevronsRight, FileSpreadsheet, HeartPulse, Home, LayoutDashboard } from "lucide-react";
+import { ChevronsLeft, ChevronsRight, FileSpreadsheet, HeartHandshake, Home, LayoutDashboard, ShieldCheck } from "lucide-react";
 
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
@@ -25,16 +25,21 @@ export function AppSidebar({
   return (
     <aside
       className={cn(
-        "fixed inset-y-0 left-0 hidden flex-col border-r bg-sidebar text-sidebar-foreground transition-[width] duration-200 lg:flex",
+        "fixed inset-y-0 left-0 hidden flex-col border-r border-white/10 bg-sidebar text-sidebar-foreground shadow-[18px_0_50px_rgba(20,31,44,0.12)] transition-[width] duration-200 lg:flex",
         collapsed ? "w-20" : "w-64",
       )}
     >
       <div className={cn("flex h-16 items-center", collapsed ? "justify-center px-3" : "justify-between px-5")}>
         <Link href="/" className={cn("flex items-center gap-3 font-semibold", collapsed && "justify-center")} title="Pulso Donante">
-          <span className="flex size-9 items-center justify-center rounded-lg bg-white/10 text-sidebar-accent-foreground">
-            <HeartPulse className="size-5" />
+          <span className="flex size-9 items-center justify-center rounded-lg bg-white/14 text-sidebar-accent-foreground ring-1 ring-white/12">
+            <HeartHandshake className="size-5" />
           </span>
-          {!collapsed && <span>Pulso Donante</span>}
+          {!collapsed && (
+            <span>
+              Pulso Donante
+              <span className="block text-xs font-medium text-sidebar-foreground/55">Sala de cuidado</span>
+            </span>
+          )}
         </Link>
         <button
           type="button"
@@ -60,10 +65,10 @@ export function AppSidebar({
               href={item.href}
               title={collapsed ? item.label : undefined}
               className={cn(
-                "flex items-center gap-3 rounded-md py-2 text-sm transition hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                "flex items-center gap-3 rounded-lg py-2.5 text-sm font-medium transition hover:bg-white/10 hover:text-sidebar-accent-foreground",
                 collapsed ? "justify-center px-2" : "px-3",
                 active
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                  ? "bg-white/14 text-sidebar-accent-foreground shadow-[inset_3px_0_0_rgba(255,255,255,0.42)]"
                   : "text-sidebar-foreground/80",
               )}
             >
@@ -73,9 +78,15 @@ export function AppSidebar({
           );
         })}
       </nav>
-      {!collapsed && <div className="p-5 text-xs leading-5 text-sidebar-foreground/60">
-        La app sugiere. La persona decide.
-      </div>}
+      {!collapsed && (
+        <div className="m-3 rounded-lg border border-white/12 bg-white/[0.06] p-4 text-xs leading-5 text-sidebar-foreground/72">
+          <div className="mb-2 flex items-center gap-2 font-semibold text-sidebar-foreground">
+            <ShieldCheck className="size-4" />
+            Control humano
+          </div>
+          La app prioriza y sugiere. La persona decide, edita y envía.
+        </div>
+      )}
     </aside>
   );
 }

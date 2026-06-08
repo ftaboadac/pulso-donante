@@ -1,8 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Download } from "lucide-react";
+import { ArrowRight, Download, HeartHandshake, RotateCcw, ShieldCheck, TriangleAlert } from "lucide-react";
 
 import { DonorTable } from "@/components/DonorTable";
 import { MetricCard } from "@/components/MetricCard";
@@ -12,6 +13,7 @@ import { exportDonorsForImport } from "@/lib/donor-export";
 import {
   formatCurrency,
   getDashboardMetrics,
+  getDonorRisk,
   getRiskFlags,
   sortDonorsByPriority,
 } from "@/lib/donors";
@@ -34,6 +36,7 @@ export function DonorDashboard() {
   const sortedDonors = useMemo(() => sortDonorsByPriority(donors), [donors]);
   const visibleDonors = sortedDonors.filter((donor) => matchesView(donor, view));
   const selectedView = queueViews.find((item) => item.key === view) ?? queueViews[0];
+  const nextDonor = sortedDonors.find((donor) => matchesView(donor, "priority"));
 
   function restartDemo() {
     resetDonors();
@@ -41,11 +44,90 @@ export function DonorDashboard() {
   }
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-4">
-        <div>
-          <p className="text-sm font-medium text-foreground">Base actual</p>
-          <p className="text-sm text-muted-foreground">donantes.xlsx</p>
+    <div className="space-y-6">
+      <section className="surface-panel overflow-hidden rounded-lg">
+        <div className="grid gap-0 lg:grid-cols-[1fr_380px]">
+          <div className="warm-hero p-5 text-white sm:p-7">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-medium uppercase tracking-[0.18em] text-white/60">Cola de cuidado</p>
+                <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">Donantes que necesitan atención</h1>
+                <p className="mt-3 max-w-2xl text-sm leading-6 text-white/68">
+                  Priorizado por reglas transparentes: severidad primero, impacto económico después. Sin login, sin
+                  automatizar conversaciones sensibles.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-white/15 bg-white/10 text-white hover:bg-white/15 hover:text-white"
+                  onClick={() => exportDonorsForImport(sortedDonors)}
+                >
+                  <Download />
+                  Exportar
+                </Button>
+                <Button variant="ghost" size="sm" className="text-white/75 hover:bg-white/10 hover:text-white" onClick={restartDemo}>
+                  <RotateCcw />
+                  Reiniciar
+                </Button>
+              </div>
+            </div>
+
+            <div className="mt-6 grid gap-3 sm:grid-cols-3">
+              <HeroStat label="Riesgo crítico mensual" value={formatCurrency(metrics.criticalMonthlyAtRisk)} />
+              <HeroStat label="Anualizado en juego" value={formatCurrency(metrics.criticalAnnualAtRisk)} />
+              <HeroStat label="Ingreso preservado" value={formatCurrency(metrics.monthlyRecovered)} />
+            </div>
+          </div>
+
+          <div className="border-t border-border bg-card p-5 lg:border-l lg:border-t-0">
+            <div className="flex items-center gap-2 text-sm font-semibold text-red-800">
+              <TriangleAlert className="size-4" />
+              Atender primero
+            </div>
+            {nextDonor ? (
+              <div className="mt-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h2 className="text-2xl font-semibold tracking-tight text-foreground">{nextDonor.name}</h2>
+                    <p className="mt-1 text-sm text-muted-foreground">{getDonorRisk(nextDonor).reasons[0]}</p>
+                  </div>
+                  <div className="rounded-lg bg-red-50 px-3 py-2 text-right text-red-800 ring-1 ring-red-200">
+                    <p className="text-lg font-semibold">{formatCurrency(nextDonor.monthlyAmount)}</p>
+                    <p className="text-xs">mensual</p>
+                  </div>
+                </div>
+                <Button asChild className="mt-5 w-full">
+                  <Link href={`/donor/${nextDonor.id}`}>
+                    Abrir caso
+                    <ArrowRight />
+                  </Link>
+                </Button>
+                <div className="mt-5 grid gap-2 text-sm text-muted-foreground">
+                  <div className="rounded-lg border border-border bg-secondary/60 p-3">
+                    <p className="font-semibold text-foreground">Por qué está arriba</p>
+                    <p className="mt-1 leading-5">Pago rechazado activo y mayor aporte mensual en la cola.</p>
+                  </div>
+                  <div className="rounded-lg border border-border bg-secondary/60 p-3">
+                    <p className="font-semibold text-foreground">Cierre esperado</p>
+                    <p className="mt-1 leading-5">Registrar recuperado o seguimiento para recalcular el riesgo.</p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="mt-4 rounded-lg bg-accent p-4 text-sm text-accent-foreground">
+                No hay casos activos para atender.
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <ShieldCheck className="size-4 text-primary" />
+          Reglas determinísticas, editables por la persona de la ONG.
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => exportDonorsForImport(sortedDonors)}>
@@ -58,16 +140,7 @@ export function DonorDashboard() {
         </div>
       </div>
 
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight text-foreground">Donantes en riesgo</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Análisis del último ciclo de cobro · priorizado por severidad e impacto
-          </p>
-        </div>
-      </div>
-
-      <section className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
+      <section className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
         <MetricCard value={String(metrics.totalDonors)} label="Donantes cargados" />
         <MetricCard
           value={String(metrics.criticalRiskCount)}
@@ -97,13 +170,19 @@ export function DonorDashboard() {
       </section>
 
       <section className="space-y-3" aria-label="Vistas de trabajo">
-        <div>
-          <h2 className="text-sm font-semibold text-foreground">Qué revisar ahora</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Elegí una vista de trabajo. La prioridad siempre sale de reglas simples, no de IA.
-          </p>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-semibold text-foreground">Qué revisar ahora</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Elegí una vista de trabajo. La prioridad siempre sale de reglas simples, no de IA.
+            </p>
+          </div>
+          <div className="inline-flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-900">
+            <HeartHandshake className="size-4" />
+            {formatCurrency(metrics.annualRecovered)} anualizados preservados
+          </div>
         </div>
-        <div className="grid gap-3 md:grid-cols-4">
+        <div className="grid gap-2 rounded-lg border border-border bg-card/92 p-1.5 shadow-sm md:grid-cols-4">
           {queueViews.map((item) => {
             const active = view === item.key;
             const count = sortedDonors.filter((donor) => matchesView(donor, item.key)).length;
@@ -116,8 +195,8 @@ export function DonorDashboard() {
                 aria-pressed={active}
                 className={
                   active
-                    ? "rounded-xl border border-primary bg-accent p-4 text-left shadow-xs"
-                    : "rounded-xl border border-border bg-card p-4 text-left transition-colors hover:border-primary/40 hover:bg-secondary/40"
+                    ? "rounded-lg border border-primary/20 bg-accent/85 p-3 text-left shadow-xs"
+                    : "rounded-lg border border-transparent p-3 text-left transition-colors hover:bg-secondary/75"
                 }
               >
                 <span className="flex items-start justify-between gap-3">
@@ -134,6 +213,15 @@ export function DonorDashboard() {
       </section>
 
       <DonorTable donors={visibleDonors} title={selectedView.label} description={selectedView.description} />
+    </div>
+  );
+}
+
+function HeroStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg bg-white/[0.10] p-4 ring-1 ring-white/12 backdrop-blur">
+      <p className="text-2xl font-semibold tracking-tight text-white">{value}</p>
+      <p className="mt-1 text-xs font-medium text-white/58">{label}</p>
     </div>
   );
 }

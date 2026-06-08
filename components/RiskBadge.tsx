@@ -5,7 +5,7 @@ import type { Donor } from "@/types/donor";
 
 export function RiskBadge({ donor }: { donor: Donor }) {
   if (donor.followUpStatus === "recovered") {
-    return <Badge className="border-transparent bg-emerald-100 text-emerald-800">Recuperado</Badge>;
+    return <Badge className="border-transparent bg-emerald-100 text-emerald-900 shadow-xs">Recuperado</Badge>;
   }
 
   if (donor.followUpStatus === "cancelled") {
@@ -23,9 +23,10 @@ export function RiskBadge({ donor }: { donor: Donor }) {
     <Badge
       variant="outline"
       className={cn(
-        risk.level === "critical" && "border-red-200 bg-red-50 text-red-700",
-        risk.level === "follow_up" && "border-amber-200 bg-amber-50 text-amber-700",
-        risk.level === "ok" && "border-emerald-200 bg-emerald-50 text-emerald-700",
+        "font-semibold shadow-xs",
+        risk.level === "critical" && "border-red-200 bg-red-50 text-red-800",
+        risk.level === "follow_up" && "border-amber-200 bg-amber-50 text-amber-800",
+        risk.level === "ok" && "border-emerald-200 bg-emerald-50 text-emerald-800",
       )}
     >
       {labels[risk.level]}

@@ -3,7 +3,7 @@
 import { type ChangeEvent, type ReactNode, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Check, Download, FileSpreadsheet, LoaderCircle, Sparkles, Upload } from "lucide-react";
+import { ArrowRight, Check, Download, FileSpreadsheet, LoaderCircle, ShieldCheck, Sparkles, Upload } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { buildFallbackMapping, defaultStatusValues } from "@/lib/ai-mapping";
@@ -167,35 +167,45 @@ export function OnboardingDemo() {
     : "Esperando archivo de ejemplo";
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <p className="text-sm font-medium text-foreground">Planilla demo</p>
-          <p className="text-sm text-muted-foreground">{spreadsheetFileLabel}</p>
+    <div className="space-y-6">
+      <section className="surface-panel overflow-hidden rounded-lg">
+        <div className="grid lg:grid-cols-[1fr_360px]">
+          <div className="warm-hero p-5 text-white sm:p-7">
+            <p className="text-xs font-medium uppercase tracking-[0.18em] text-white/60">Onboarding demo</p>
+            <h1 className="mt-3 max-w-2xl text-3xl font-semibold tracking-tight sm:text-4xl">
+              Cargá una planilla realista, confirmá el mapeo y pasá directo a recuperar donantes.
+            </h1>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-white/68">
+              La IA puede sugerir columnas, pero no decide. El análisis de riesgo lo hacen reglas simples y visibles.
+            </p>
+          </div>
+          <div className="border-t border-border bg-card p-5 lg:border-l lg:border-t-0">
+            <div className="flex items-start gap-3">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-accent text-primary">
+                <ShieldCheck className="size-5" />
+              </span>
+              <div>
+                <p className="text-sm font-semibold text-foreground">Confirmación humana obligatoria</p>
+                <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                  Antes de ir al dashboard, revisás cada columna y cada estado de pago.
+                </p>
+              </div>
+            </div>
+            <Button asChild variant="outline" size="sm" className="mt-5">
+              <Link href="/">Volver al inicio</Link>
+            </Button>
+          </div>
         </div>
-        <Button asChild variant="ghost" size="sm">
-          <Link href="/">Volver</Link>
-        </Button>
-      </div>
+      </section>
 
-      <div>
-        <span className="text-sm font-medium text-primary">Carga de datos</span>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-foreground">
-          Subí la planilla de ejemplo para iniciar la demo
-        </h1>
-        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-          Descargá el archivo, volvé a subirlo y Pulso va a analizar columnas y primeras filas antes de mostrarte el
-          mapeo sugerido. La persona de la ONG confirma todo antes de procesar.
-        </p>
-      </div>
-
-      <section className="grid gap-4 rounded-2xl border border-primary/20 bg-primary/5 p-4 md:grid-cols-[1fr_auto] md:items-center">
+      <section className="grid gap-4 rounded-lg border border-primary/20 bg-card/92 p-4 shadow-sm md:grid-cols-[1fr_auto] md:items-center">
         <div className="flex items-center gap-3">
-          <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-background text-primary shadow-sm">
+          <div className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-accent text-primary shadow-sm">
             <FileSpreadsheet className="size-5" aria-hidden="true" />
           </div>
           <div className="min-w-0">
-            <h2 className="text-base font-semibold text-foreground">Planilla de Fundación Puente</h2>
+            <p className="text-xs font-medium uppercase tracking-[0.12em] text-primary">Planilla demo</p>
+            <h2 className="mt-1 text-base font-semibold text-foreground">Fundación Puente · donantes.xlsx</h2>
             {uploadedSpreadsheetName ? (
               <p className="mt-1 inline-flex max-w-full items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
                 <Check className="size-3.5" aria-hidden="true" />
@@ -225,12 +235,12 @@ export function OnboardingDemo() {
 
       {isAnalyzing && (
         <section
-          className="rounded-2xl border border-border bg-card p-6 shadow-sm"
+          className="rounded-lg border border-border bg-card p-5 shadow-sm sm:p-6"
           aria-label="Análisis de la planilla"
           aria-live="polite"
         >
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
-            <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
               <LoaderCircle className="size-5 animate-spin" aria-hidden="true" />
             </div>
             <div>
@@ -243,9 +253,9 @@ export function OnboardingDemo() {
                 a poder revisar el mapeo sugerido antes de continuar.
               </p>
               <div className="mt-4 grid gap-2 text-sm text-muted-foreground sm:grid-cols-3">
-                <span className="rounded-lg bg-secondary px-3 py-2">Validando columnas</span>
-                <span className="rounded-lg bg-secondary px-3 py-2">Interpretando estados</span>
-                <span className="rounded-lg bg-secondary px-3 py-2">Preparando sugerencia</span>
+                <span className="rounded-lg bg-secondary px-3 py-2 action-ring">Validando columnas</span>
+                <span className="rounded-lg bg-secondary px-3 py-2 action-ring">Interpretando estados</span>
+                <span className="rounded-lg bg-secondary px-3 py-2 action-ring">Preparando sugerencia</span>
               </div>
             </div>
           </div>
@@ -272,7 +282,7 @@ export function OnboardingDemo() {
             />
           </section>
 
-          <section className="overflow-hidden rounded-xl border border-border bg-card">
+          <section className="surface-panel overflow-hidden rounded-lg">
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-5 py-3">
               <h2 className="text-sm font-semibold text-foreground">Vista previa de la planilla</h2>
               <span className="text-xs text-muted-foreground">{spreadsheetFileLabel}</span>
@@ -308,7 +318,7 @@ export function OnboardingDemo() {
             </div>
           </section>
 
-          <div className="flex items-center gap-2 text-sm">
+          <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-card px-4 py-3 text-sm shadow-sm">
             {suggestion.source === "claude" ? (
               <>
                 <Sparkles className="size-4 text-primary" aria-hidden="true" />
@@ -337,7 +347,7 @@ export function OnboardingDemo() {
               {mappingEntries.map(([field, selectedColumn]) => (
                 <li
                   key={field}
-                  className="grid gap-2 rounded-lg border border-border bg-secondary/30 px-3 py-3 sm:grid-cols-[1fr_auto_1.2fr] sm:items-center"
+                  className="grid gap-2 rounded-lg border border-border bg-secondary/45 px-3 py-3 sm:grid-cols-[1fr_auto_1.2fr] sm:items-center"
                 >
                   <span className="text-sm font-medium text-foreground">{onboardingFieldLabels[field]}</span>
                   <ArrowRight className="hidden size-4 text-primary sm:block" aria-hidden="true" />
@@ -345,7 +355,7 @@ export function OnboardingDemo() {
                     value={selectedColumn}
                     onChange={(event) => updateMapping(field, event.target.value)}
                     aria-label={`Columna para ${onboardingFieldLabels[field]}`}
-                    className="h-9 min-w-0 rounded-md border border-input bg-background px-2 text-sm outline-none focus:border-ring focus:ring-3 focus:ring-ring/20"
+                    className="h-10 min-w-0 rounded-lg border border-input bg-card px-3 text-sm outline-none focus:border-ring focus:ring-3 focus:ring-ring/20"
                   >
                     <option value="">Elegir columna</option>
                     {columns.map((column) => (
@@ -365,7 +375,7 @@ export function OnboardingDemo() {
               {Object.entries(suggestion.normalizations).map(([sourceValue, status]) => (
                 <li
                   key={sourceValue}
-                  className="grid gap-2 rounded-lg border border-border bg-secondary/30 px-3 py-3 sm:grid-cols-[1fr_auto_1.2fr] sm:items-center"
+                  className="grid gap-2 rounded-lg border border-border bg-secondary/45 px-3 py-3 sm:grid-cols-[1fr_auto_1.2fr] sm:items-center"
                 >
                   <span className="text-sm font-medium text-foreground">{sourceValue}</span>
                   <ArrowRight className="hidden size-4 text-primary sm:block" aria-hidden="true" />
@@ -373,7 +383,7 @@ export function OnboardingDemo() {
                     value={status}
                     onChange={(event) => updateNormalization(sourceValue, event.target.value as PaymentStatus)}
                     aria-label={`Estado para ${sourceValue}`}
-                    className="h-9 min-w-0 rounded-md border border-input bg-background px-2 text-sm outline-none focus:border-ring focus:ring-3 focus:ring-ring/20"
+                    className="h-10 min-w-0 rounded-lg border border-input bg-card px-3 text-sm outline-none focus:border-ring focus:ring-3 focus:ring-ring/20"
                   >
                     {Object.entries(paymentStatusMappingLabels).map(([value, label]) => (
                       <option key={value} value={value}>
@@ -386,7 +396,7 @@ export function OnboardingDemo() {
             </MappingCard>
           </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-border bg-card p-5">
+          <div className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-primary/20 bg-card p-5 shadow-[0_16px_36px_rgba(34,52,48,0.07)]">
             <div>
               <p className="text-sm text-muted-foreground">
                 Todo listo. Se analizarán 10 donantes con reglas transparentes y auditables.
@@ -406,7 +416,7 @@ export function OnboardingDemo() {
 
 function MappingCard({ title, description, children }: { title: string; description: string; children: ReactNode }) {
   return (
-    <section className="rounded-xl border border-border bg-card p-5">
+    <section className="rounded-lg border border-border bg-card p-5 shadow-[0_12px_28px_rgba(34,52,48,0.06)]">
       <h2 className="text-sm font-semibold text-foreground">{title}</h2>
       <p className="mt-1 text-xs text-muted-foreground">{description}</p>
       <ul className="mt-4 flex flex-col gap-2">{children}</ul>
@@ -469,9 +479,9 @@ function formatShortDate(date: string) {
 
 function ProcessStep({ number, title, description }: { number: string; title: string; description: string }) {
   return (
-    <div className="rounded-xl border border-border bg-card p-4">
+    <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
       <div className="flex items-center gap-3">
-        <span className="flex size-7 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
+        <span className="flex size-7 items-center justify-center rounded-lg bg-primary text-xs font-semibold text-primary-foreground">
           {number}
         </span>
         <h2 className="text-sm font-semibold text-foreground">{title}</h2>
